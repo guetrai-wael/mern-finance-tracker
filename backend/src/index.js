@@ -12,7 +12,7 @@ mongoose.connect(process.env.MONGO_URI)
     .then(() => {
         console.log("✔ Connected to MongoDB Atlas");
         logger.info('Connected to MongoDB Atlas');
-        
+
         // Start server after successful DB connection
         app.listen(PORT, '0.0.0.0', () => {
             logger.info('Server started successfully', { port: PORT, host: '0.0.0.0', environment: config.nodeEnv });
