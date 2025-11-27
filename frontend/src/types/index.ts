@@ -8,6 +8,19 @@ export interface User {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  settings?: {
+    currency?: string;
+    country?: string;
+    dateFormat?: string;
+    numberFormat?: string;
+    theme?: string;
+    notifications?: {
+      email?: boolean;
+      budgetAlerts?: boolean;
+      goalReminders?: boolean;
+      monthlyReports?: boolean;
+    };
+  };
 }
 
 export interface Category {
@@ -181,6 +194,31 @@ export interface SettingsUpdateInput {
     goalReminders?: boolean;
     monthlyReports?: boolean;
   };
+}
+
+export interface FinancialSummary {
+  totalIncome: number;
+  totalExpenses: number;
+  balance: number;
+  savingsRate: number;
+}
+
+export interface BudgetAnalysis {
+  category: string;
+  budgeted: number;
+  spent: number;
+  remaining: number;
+  percentage: number;
+}
+
+export interface FinancialHealth {
+  score: number;
+  factors: {
+    savingsRate: number;
+    budgetAdherence: number;
+    goalProgress: number;
+  };
+  recommendations: string[];
 }
 
 export interface CountryInfo {

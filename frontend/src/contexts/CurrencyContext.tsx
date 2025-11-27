@@ -2,8 +2,7 @@ import React, {
   createContext,
   useState,
   useEffect,
-  ReactNode,
-  useContext,
+  type ReactNode,
 } from "react";
 import { useAuth } from "./AuthContext";
 

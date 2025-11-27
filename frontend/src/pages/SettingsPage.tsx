@@ -109,7 +109,7 @@ const SettingsPage: React.FC = () => {
   // Mutations
   const updateProfileMutation = useMutation({
     mutationFn: updateProfile,
-    onSuccess: (data) => {
+    onSuccess: () => {
       showSuccess("Profile updated successfully!");
       refreshUser();
       queryClient.invalidateQueries({ queryKey: ["user"] });

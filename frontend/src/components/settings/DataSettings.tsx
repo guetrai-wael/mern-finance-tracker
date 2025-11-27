@@ -22,11 +22,6 @@ interface ExportData {
   data: unknown;
 }
 
-interface DateRangeParams {
-  startDate?: string;
-  endDate?: string;
-}
-
 interface ExportOptions {
   includeTransactions: boolean;
   includeCategories: boolean;
@@ -68,9 +63,8 @@ const DataSettings: React.FC = () => {
 
       // Export transactions
       if (exportOptions.includeTransactions) {
-        const transactions = await transactionService.getAll({
-          ...(exportOptions.dateRange !== "all" && getDateRangeParams()),
-        });
+        const response = await transactionService.getAll();
+        const transactions = response.data;
 
         if (exportOptions.format === "csv") {
           const transactionsCsv = convertTransactionsToCSV(transactions);
@@ -153,46 +147,6 @@ const DataSettings: React.FC = () => {
     });
 
     return csv;
-  };
-
-  const getDateRangeParams = (): DateRangeParams => {
-    const now = new Date();
-    const params: DateRangeParams = {};
-
-    switch (exportOptions.dateRange) {
-      case "last_month":
-        params.startDate = new Date(
-          now.getFullYear(),
-          now.getMonth() - 1,
-          1
-        ).toISOString();
-        params.endDate = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          0
-        ).toISOString();
-        break;
-      case "last_3_months":
-        params.startDate = new Date(
-          now.getFullYear(),
-          now.getMonth() - 3,
-          1
-        ).toISOString();
-        params.endDate = now.toISOString();
-        break;
-      case "last_year":
-        params.startDate = new Date(now.getFullYear() - 1, 0, 1).toISOString();
-        params.endDate = now.toISOString();
-        break;
-      case "custom":
-        if (exportOptions.startDate)
-          params.startDate = new Date(exportOptions.startDate).toISOString();
-        if (exportOptions.endDate)
-          params.endDate = new Date(exportOptions.endDate).toISOString();
-        break;
-    }
-
-    return params;
   };
 
   const handleDeleteAccount = async () => {
