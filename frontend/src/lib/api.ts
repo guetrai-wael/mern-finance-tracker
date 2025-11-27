@@ -94,7 +94,11 @@ api.interceptors.response.use(
       } catch (refreshError) {
         // Refresh failed, clear auth state and redirect
         isRefreshing = false;
-        processQueue(refreshError instanceof Error ? refreshError : new Error('Token refresh failed'));
+        processQueue(
+          refreshError instanceof Error
+            ? refreshError
+            : new Error("Token refresh failed")
+        );
 
         // Clear any auth cookies/state
         document.cookie =
