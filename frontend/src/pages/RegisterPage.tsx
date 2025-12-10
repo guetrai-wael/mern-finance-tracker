@@ -1,11 +1,13 @@
-// Register page component
+// Register page
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "../contexts/AuthContext";
-import { FiEye, FiEyeOff, FiLoader } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiPieChart } from "react-icons/fi";
+import { Button } from "../components/common/Button";
+import { Input } from "../components/common/Input";
 
 const registerSchema = z
   .object({
@@ -15,7 +17,7 @@ const registerSchema = z
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
+    message: "Passwords do not match",
     path: ["confirmPassword"],
   });
 
@@ -23,7 +25,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const { signup } = useAuth();
+  const { signup: registerUser } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,11 +45,7 @@ const RegisterPage: React.FC = () => {
     setError("");
 
     try {
-      await signup({
-        name: data.name,
-        email: data.email,
-        password: data.password,
-      });
+      await registerUser({ name: data.name, email: data.email, password: data.password });
       setSuccess(true);
       setTimeout(() => {
         navigate("/login");
@@ -59,23 +57,15 @@ const RegisterPage: React.FC = () => {
             message?: string;
             errors?: Array<{ field: string; message: string }>;
           };
-          status?: number;
         };
       };
 
-      // Handle rate limiting
-      if (error.response?.status === 429) {
-        setError("Too many requests. Please wait a moment and try again.");
-      }
-      // Handle validation errors
-      else if (error.response?.data?.errors) {
+      if (error.response?.data?.errors) {
         const validationMessages = error.response.data.errors
           .map((err) => `${err.field}: ${err.message}`)
           .join(", ");
-        setError(`Validation failed: ${validationMessages}`);
-      }
-      // Handle general errors
-      else {
+        setError(`Registration failed: ${validationMessages}`);
+      } else {
         setError(
           error.response?.data?.message ||
             "Registration failed. Please try again."
@@ -88,11 +78,20 @@ const RegisterPage: React.FC = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
+     <div className="min-h-screen flex items-center justify-center bg-slate-900 relative overflow-hidden">
+         {/* Success Background */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-1/2 left-1/2 w-[500px] h-[500px] bg-emerald-500/20 rounded-full blur-[120px] mix-blend-screen animate-pulse transform -translate-x-1/2 -translate-y-1/2"></div>
+         </div>
+        <div className="max-w-md w-full bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl p-10 z-10 shadow-2xl relative">
           <div className="text-center">
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
-              Account created successfully! Redirecting to login...
+            <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/20">
+                <FiPieChart className="w-10 h-10 text-emerald-400" />
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-4">Welcome Aboard!</h2>
+            <div className="text-emerald-300 bg-emerald-900/40 border border-emerald-500/30 px-6 py-4 rounded-2xl backdrop-blur-md">
+              <p className="font-medium">Account created successfully!</p>
+              <p className="text-sm opacity-80 mt-1">Redirecting you to login...</p>
             </div>
           </div>
         </div>
@@ -101,146 +100,128 @@ const RegisterPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
+    <div className="min-h-screen flex items-center justify-center bg-slate-900 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        {/* Rich Gradient Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+             <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-900/40 rounded-full blur-[120px] mix-blend-screen animate-pulse delay-500"></div>
+            <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary-900/30 rounded-full blur-[120px] mix-blend-screen animate-pulse"></div>
+        </div>
+
+      <div className="max-w-md w-full space-y-8 relative z-10 p-10 bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl">
+        <div className="flex flex-col items-center">
+            <div className="w-16 h-16 bg-gradient-to-tr from-primary-500 to-purple-600 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-primary-500/30">
+             <FiPieChart className="w-8 h-8" />
+          </div>
+          <h2 className="text-center text-3xl font-bold text-white tracking-tight">
+            Create Account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{" "}
-            <Link
-              to="/login"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              sign in to your existing account
-            </Link>
+          <p className="mt-2 text-center text-slate-300">
+            Join <span className="font-semibold text-primary-400">Chahrity</span> to take control
           </p>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+             <div className="bg-red-500/10 border border-red-500/20 text-red-200 px-4 py-3 rounded-xl text-sm font-medium backdrop-blur-sm">
               {error}
             </div>
           )}
 
           <div className="space-y-4">
-            <div>
-              <label htmlFor="name" className="form-label">
-                Full name
-              </label>
-              <input
-                {...register("name")}
+             <div>
+                 <label className="block text-sm font-medium text-slate-200 mb-1.5 ml-1">
+                    Full Name
+                 </label>
+                <Input
                 type="text"
-                id="name"
-                className="form-input"
-                placeholder="Enter your full name"
-              />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.name.message}
-                </p>
-              )}
+                placeholder="Enter your name"
+                error={errors.name?.message}
+                {...register("name")}
+                 className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-primary-500 focus:ring-primary-500"
+                />
             </div>
 
             <div>
-              <label htmlFor="email" className="form-label">
-                Email address
-              </label>
-              <input
-                {...register("email")}
+                 <label className="block text-sm font-medium text-slate-200 mb-1.5 ml-1">
+                    Email address
+                 </label>
+                <Input
                 type="email"
-                id="email"
-                className="form-input"
                 placeholder="Enter your email"
+                error={errors.email?.message}
+                {...register("email")}
+                 className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-primary-500 focus:ring-primary-500"
+                />
+            </div>
+
+            <div className="relative">
+                 <label className="block text-sm font-medium text-slate-200 mb-1.5 ml-1">
+                    Password
+                 </label>
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder="Create a password"
+                error={errors.password?.message}
+                {...register("password")}
+                 className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-primary-500 focus:ring-primary-500"
               />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.email.message}
-                </p>
-              )}
+              <button
+                type="button"
+                className="absolute top-[34px] right-3 flex items-center text-slate-400 hover:text-white transition-colors"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <FiEyeOff className="h-5 w-5" />
+                ) : (
+                  <FiEye className="h-5 w-5" />
+                )}
+              </button>
             </div>
 
-            <div>
-              <label htmlFor="password" className="form-label">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  {...register("password")}
-                  type={showPassword ? "text" : "password"}
-                  id="password"
-                  className="form-input pr-10"
-                  placeholder="Create a password"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <FiEyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <FiEye className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="form-label">
-                Confirm password
-              </label>
-              <div className="relative">
-                <input
-                  {...register("confirmPassword")}
-                  type={showConfirmPassword ? "text" : "password"}
-                  id="confirmPassword"
-                  className="form-input pr-10"
-                  placeholder="Confirm your password"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <FiEyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <FiEye className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.confirmPassword.message}
-                </p>
-              )}
+            <div className="relative">
+                 <label className="block text-sm font-medium text-slate-200 mb-1.5 ml-1">
+                    Confirm Password
+                 </label>
+              <Input
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Confirm your password"
+                error={errors.confirmPassword?.message}
+                {...register("confirmPassword")}
+                 className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-primary-500 focus:ring-primary-500"
+              />
+               <button
+                type="button"
+                className="absolute top-[34px] right-3 flex items-center text-slate-400 hover:text-white transition-colors"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                {showConfirmPassword ? (
+                  <FiEyeOff className="h-5 w-5" />
+                ) : (
+                  <FiEye className="h-5 w-5" />
+                )}
+              </button>
             </div>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full btn-primary flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed"
+          <Button
+            type="submit"
+            fullWidth
+            size="lg"
+            isLoading={isLoading}
+             className="bg-gradient-to-r from-primary-600 to-purple-600 hover:from-primary-500 hover:to-purple-500 text-white shadow-lg shadow-primary-500/25 border-none"
+          >
+            Create Account
+          </Button>
+
+          <p className="mt-4 text-center text-sm text-slate-400">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="font-medium text-primary-400 hover:text-primary-300 transition-colors"
             >
-              {isLoading ? (
-                <>
-                  <FiLoader className="animate-spin -ml-1 mr-3 h-5 w-5" />
-                  Creating account...
-                </>
-              ) : (
-                "Create account"
-              )}
-            </button>
-          </div>
+              Sign in
+            </Link>
+          </p>
         </form>
       </div>
     </div>

@@ -19,6 +19,10 @@ import {
 } from "../services/users";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import { useToast } from "../hooks/useToast";
+import { Modal } from "../components/common/Modal";
+import { Button } from "../components/common/Button";
+import { Card } from "../components/common/Card";
+import { Input } from "../components/common/Input";
 import type { User } from "../types";
 
 const userUpdateSchema = z.object({
@@ -166,93 +170,93 @@ const AdminPage: React.FC = () => {
   return (
     <div>
       <div className="mb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-slate-900">
               Admin Dashboard
             </h1>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-slate-500">
               Manage users and export data
             </p>
           </div>
-          <div className="flex space-x-3">
-            <button
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
               onClick={() => handleExport("csv")}
-              disabled={exportMutation.isPending}
-              className="btn-secondary flex items-center space-x-2"
+              isLoading={exportMutation.isPending}
+              icon={<FiDownload className="h-4 w-4" />}
             >
-              <FiDownload className="h-4 w-4" />
-              <span>Export CSV</span>
-            </button>
-            <button
+              Export CSV
+            </Button>
+            <Button
+              variant="secondary"
               onClick={() => handleExport("json")}
-              disabled={exportMutation.isPending}
-              className="btn-secondary flex items-center space-x-2"
+              isLoading={exportMutation.isPending}
+              icon={<FiDownload className="h-4 w-4" />}
             >
-              <FiDownload className="h-4 w-4" />
-              <span>Export JSON</span>
-            </button>
+              Export JSON
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Users Table */}
-      <div className="card">
-        <div className="mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Users</h3>
-          <p className="text-sm text-gray-600">Total users: {users.length}</p>
+      <Card className="overflow-hidden">
+        <div className="p-6 border-b border-slate-100">
+          <h3 className="text-lg font-bold text-slate-900">Users</h3>
+          <p className="text-sm text-slate-500">Total users: {users.length}</p>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-slate-100">
+            <thead className="bg-slate-50/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   User
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Created
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-slate-50">
               {users.length === 0 ? (
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-6 py-8 text-center text-gray-500"
+                    className="px-6 py-12 text-center text-slate-500"
                   >
                     No users found.
                   </td>
                 </tr>
               ) : (
                 users.map((user) => (
-                  <tr key={user._id || user.id} className="hover:bg-gray-50">
+                  <tr key={user._id || user.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-slate-900">
                           {user.name}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-slate-500">
                           {user.email}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           user.role === "admin"
-                            ? "bg-purple-100 text-purple-800"
-                            : "bg-gray-100 text-gray-800"
+                            ? "bg-purple-100 text-purple-700"
+                            : "bg-slate-100 text-slate-700"
                         }`}
                       >
                         {user.role}
@@ -260,16 +264,16 @@ const AdminPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           user.isActive
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-red-100 text-red-700"
                         }`}
                       >
                         {user.isActive ? "Active" : "Inactive"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -277,10 +281,10 @@ const AdminPage: React.FC = () => {
                         <button
                           onClick={() => toggleUserStatus(user)}
                           disabled={updateMutation.isPending}
-                          className={`${
+                          className={`p-1.5 rounded-lg transition-colors ${
                             user.isActive
-                              ? "text-red-600 hover:text-red-500"
-                              : "text-green-600 hover:text-green-500"
+                              ? "text-slate-400 hover:text-red-600 hover:bg-red-50"
+                              : "text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
                           }`}
                           title={
                             user.isActive ? "Deactivate user" : "Activate user"
@@ -294,14 +298,14 @@ const AdminPage: React.FC = () => {
                         </button>
                         <button
                           onClick={() => handleEdit(user)}
-                          className="text-blue-600 hover:text-blue-500"
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="Edit user"
                         >
                           <FiEdit className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(user)}
-                          className="text-red-600 hover:text-red-500"
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           disabled={deleteMutation.isPending}
                           title="Delete user"
                         >
@@ -315,126 +319,119 @@ const AdminPage: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
       {/* Edit User Modal */}
-      {isEditModalOpen && editingUser && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Edit User: {editingUser.name}
-            </h3>
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingUser(null);
+          reset();
+        }}
+        title={`Edit User: ${editingUser?.name}`}
+      >
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+           <Input
+            label="Name"
+            error={errors.name?.message}
+            {...register("name")}
+          />
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div>
-                <label className="form-label">Name</label>
-                <input
-                  type="text"
-                  {...register("name")}
-                  className="form-input"
-                />
-                {errors.name && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.name.message}
-                  </p>
-                )}
-              </div>
+          <Input
+            label="Email"
+            type="email"
+            error={errors.email?.message}
+            {...register("email")}
+          />
 
-              <div>
-                <label className="form-label">Email</label>
-                <input
-                  type="email"
-                  {...register("email")}
-                  className="form-input"
-                />
-                {errors.email && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.email.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="form-label">Role</label>
-                <select {...register("role")} className="form-input">
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                </select>
-                {errors.role && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.role.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  {...register("isActive")}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label className="ml-2 block text-sm text-gray-900">
-                  Active user
-                </label>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsEditModalOpen(false);
-                    setEditingUser(null);
-                    reset();
-                  }}
-                  className="btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={updateMutation.isPending}
-                  className="btn-primary"
-                >
-                  {updateMutation.isPending ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
-            </form>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Role</label>
+            <select 
+                {...register("role")} 
+                className="block w-full rounded-xl border-slate-200 bg-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2.5"
+            >
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+            {errors.role && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.role.message}
+              </p>
+            )}
           </div>
-        </div>
-      )}
+
+          <div className="flex items-center p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <input
+              type="checkbox"
+              id="isActive"
+              {...register("isActive")}
+              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-slate-300 rounded"
+            />
+            <label htmlFor="isActive" className="ml-3 block text-sm font-medium text-slate-900 cursor-pointer select-none">
+              Account Active
+            </label>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => {
+                setIsEditModalOpen(false);
+                setEditingUser(null);
+                reset();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              isLoading={updateMutation.isPending}
+            >
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirmUser && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Confirm Deletion
-            </h3>
-            <p className="text-sm text-gray-600 mb-6">
-              Are you sure you want to delete{" "}
-              <strong>{deleteConfirmUser.name}</strong>? This action cannot be
-              undone and will permanently remove all user data including
-              transactions, categories, and budgets.
-            </p>
+      <Modal
+        isOpen={!!deleteConfirmUser}
+        onClose={() => setDeleteConfirmUser(null)}
+        title="Confirm Deletion"
+      >
+        <div className="space-y-4">
+            <div className="p-4 bg-red-50 text-red-800 rounded-xl border border-red-100 text-sm">
+                <div className="flex gap-2">
+                    <FiTrash2 className="w-5 h-5 shrink-0" />
+                    <div>
+                        <p className="font-semibold mb-1">Permanent Action</p>
+                        <p>
+                        Are you sure you want to delete <strong>{deleteConfirmUser?.name}</strong>?
+                        This action cannot be undone and will permanently remove all data associated with this user.
+                        </p>
+                    </div>
+                </div>
+            </div>
 
-            <div className="flex justify-end space-x-3">
-              <button
+            <div className="flex justify-end space-x-3 pt-4">
+              <Button
+                variant="secondary"
                 onClick={() => setDeleteConfirmUser(null)}
-                className="btn-secondary"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="danger"
                 onClick={confirmDelete}
-                disabled={deleteMutation.isPending}
-                className="btn-danger"
+                isLoading={deleteMutation.isPending}
               >
-                {deleteMutation.isPending ? "Deleting..." : "Delete User"}
-              </button>
+                Delete User
+              </Button>
             </div>
-          </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 };

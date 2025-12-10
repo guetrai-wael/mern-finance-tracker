@@ -5,7 +5,7 @@ const app = require('./app');
 const config = require('./config');
 const logger = require('./utils/logger');
 
-const PORT = process.env.PORT || 5000;
+const PORT = config.port;
 
 // Connect to MongoDB before starting the server
 mongoose.connect(process.env.MONGO_URI)

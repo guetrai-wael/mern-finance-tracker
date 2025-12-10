@@ -12,6 +12,7 @@ import {
   FiDollarSign,
   FiCalendar,
   FiTrendingUp,
+  FiPieChart,
 } from "react-icons/fi";
 import {
   getGoals,
@@ -23,6 +24,10 @@ import {
 import { useCurrency } from "../hooks/useCurrency";
 import { useToast } from "../hooks/useToast";
 import LoadingSpinner from "../components/common/LoadingSpinner";
+import { Card } from "../components/common/Card";
+import { Button } from "../components/common/Button";
+import { Input } from "../components/common/Input";
+import { Modal } from "../components/common/Modal";
 import type { Goal, GoalInput, GoalContribution } from "../types";
 
 const goalSchema = z.object({
@@ -217,41 +222,30 @@ const GoalsPage: React.FC = () => {
   };
 
   const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return "bg-green-500";
-    if (percentage >= 75) return "bg-blue-500";
-    if (percentage >= 50) return "bg-yellow-500";
-    return "bg-gray-400";
+    if (percentage >= 100) return "bg-emerald-500";
+    if (percentage >= 75) return "bg-teal-500";
+    if (percentage >= 50) return "bg-cyan-500";
+    return "bg-slate-300";
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "high":
-        return "bg-red-100 text-red-800";
-      case "medium":
-        return "bg-yellow-100 text-yellow-800";
-      case "low":
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+      case "high": return "bg-red-100 text-red-700 border-red-200";
+      case "medium": return "bg-amber-100 text-amber-700 border-amber-200";
+      case "low": return "bg-blue-100 text-blue-700 border-blue-200";
+      default: return "bg-slate-100 text-slate-700 border-slate-200";
     }
   };
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case "emergency":
-        return "🚨";
-      case "vacation":
-        return "✈️";
-      case "house":
-        return "🏠";
-      case "car":
-        return "🚗";
-      case "retirement":
-        return "👴";
-      case "education":
-        return "🎓";
-      default:
-        return "🎯";
+      case "emergency": return "🚨";
+      case "vacation": return "✈️";
+      case "house": return "🏠";
+      case "car": return "🚗";
+      case "retirement": return "👴";
+      case "education": return "🎓";
+      default: return "🎯";
     }
   };
 
@@ -268,108 +262,80 @@ const GoalsPage: React.FC = () => {
     totalTargetAmount > 0 ? (totalCurrentAmount / totalTargetAmount) * 100 : 0;
 
   return (
-    <div>
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Financial Goals
-            </h1>
-            <p className="mt-1 text-sm text-gray-600">
-              Track and achieve your financial objectives
-            </p>
-          </div>
-          <button
-            onClick={openModal}
-            className="btn-primary flex items-center space-x-2"
-          >
-            <FiPlus className="h-4 w-4" />
-            <span>Add Goal</span>
-          </button>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">
+            Financial Goals
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Track and achieve your financial objectives
+          </p>
         </div>
+        <Button onClick={openModal} icon={<FiPlus className="w-4 h-4" />}>
+          Add Goal
+        </Button>
       </div>
 
       {/* Goals Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="flex items-center justify-center h-8 w-8 bg-blue-100 rounded-md">
-                <FiTarget className="h-5 w-5 text-blue-600" />
-              </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-4 flex items-center space-x-4">
+            <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">
+               <FiTarget className="h-6 w-6" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Total Goals</p>
-              <p className="text-lg font-semibold text-gray-900">
-                {totalGoals}
-              </p>
+            <div>
+              <p className="text-sm font-medium text-slate-500">Total Goals</p>
+              <p className="text-xl font-bold text-slate-900">{totalGoals}</p>
             </div>
-          </div>
-        </div>
+        </Card>
 
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="flex items-center justify-center h-8 w-8 bg-green-100 rounded-md">
-                <FiTrendingUp className="h-5 w-5 text-green-600" />
-              </div>
+        <Card className="p-4 flex items-center space-x-4">
+            <div className="p-3 bg-emerald-100 text-emerald-600 rounded-xl">
+               <FiTrendingUp className="h-6 w-6" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Completed</p>
-              <p className="text-lg font-semibold text-gray-900">
-                {completedGoals}
-              </p>
+            <div>
+              <p className="text-sm font-medium text-slate-500">Completed</p>
+              <p className="text-xl font-bold text-slate-900">{completedGoals}</p>
             </div>
-          </div>
-        </div>
+        </Card>
 
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="flex items-center justify-center h-8 w-8 bg-purple-100 rounded-md">
-                <FiDollarSign className="h-5 w-5 text-purple-600" />
-              </div>
+        <Card className="p-4 flex items-center space-x-4">
+            <div className="p-3 bg-purple-100 text-purple-600 rounded-xl">
+               <FiDollarSign className="h-6 w-6" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Total Saved</p>
-              <p className="text-lg font-semibold text-gray-900">
-                {formatCurrency(totalCurrentAmount)}
-              </p>
+            <div>
+              <p className="text-sm font-medium text-slate-500">Total Saved</p>
+              <p className="text-xl font-bold text-slate-900">{formatCurrency(totalCurrentAmount)}</p>
             </div>
-          </div>
-        </div>
+        </Card>
 
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="flex items-center justify-center h-8 w-8 bg-orange-100 rounded-md">
-                <FiCalendar className="h-5 w-5 text-orange-600" />
-              </div>
+        <Card className="p-4 flex items-center space-x-4">
+            <div className="p-3 bg-orange-100 text-orange-600 rounded-xl">
+               <FiPieChart className="h-6 w-6" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Progress</p>
-              <p className="text-lg font-semibold text-gray-900">
-                {overallProgress.toFixed(1)}%
-              </p>
+            <div>
+              <p className="text-sm font-medium text-slate-500">Total Progress</p>
+              <p className="text-xl font-bold text-slate-900">{overallProgress.toFixed(1)}%</p>
             </div>
-          </div>
-        </div>
+        </Card>
       </div>
 
       {/* Goals Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {goals.length === 0 ? (
           <div className="col-span-full">
-            <div className="card text-center py-12">
-              <FiTarget className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <p className="text-gray-500 mb-4">
-                No financial goals yet. Create your first goal to start tracking
-                your progress!
+            <Card className="text-center py-16">
+               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FiTarget className="w-8 h-8 text-slate-400" />
+               </div>
+              <h3 className="text-lg font-medium text-slate-900 mb-2">No active goals</h3>
+              <p className="text-slate-500 mb-6 max-w-sm mx-auto">
+                Setting financial goals is the first step to financial freedom. Start by creating a simple savings goal.
               </p>
-              <button onClick={openModal} className="btn-primary">
+              <Button onClick={openModal}>
                 Create Your First Goal
-              </button>
-            </div>
+              </Button>
+            </Card>
           </div>
         ) : (
           goals.map((goal) => {
@@ -383,170 +349,149 @@ const GoalsPage: React.FC = () => {
               !goal.isCompleted;
 
             return (
-              <div key={goal._id} className="card">
+              <Card key={goal._id} className="flex flex-col h-full hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <span className="text-2xl">
+                    <span className="text-3xl bg-slate-50 p-2 rounded-xl border border-slate-100">
                       {getCategoryIcon(goal.category)}
                     </span>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <h3 className="text-lg font-bold text-slate-900 line-clamp-1">
                         {goal.name}
                       </h3>
-                      {goal.description && (
-                        <p className="text-sm text-gray-600">
-                          {goal.description}
-                        </p>
-                      )}
+                      <div className="flex items-center gap-2 mt-1">
+                          <span className={`inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-md border ${getPriorityColor(goal.priority)}`}>
+                            {goal.priority}
+                           </span>
+                           {isOverdue && (
+                            <span className="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-md bg-red-100 text-red-700 border border-red-200">
+                                Overdue
+                            </span>
+                           )}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex space-x-1">
+                  <div className="flex -space-x-1">
                     <button
                       onClick={() => handleEdit(goal)}
-                      className="text-blue-600 hover:text-blue-500 p-1"
-                      title="Edit goal"
+                      className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     >
                       <FiEdit className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(goal)}
-                      className="text-red-600 hover:text-red-500 p-1"
-                      title="Delete goal"
+                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <FiTrash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
-                        goal.priority
-                      )}`}
-                    >
-                      {goal.priority} priority
-                    </span>
-                    {goal.isCompleted && (
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                        Completed ✓
-                      </span>
-                    )}
-                    {isOverdue && (
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                        Overdue
-                      </span>
-                    )}
-                  </div>
-
+                <div className="space-y-4 flex-1">
+                   {goal.description && (
+                        <p className="text-sm text-slate-500 line-clamp-2">
+                          {goal.description}
+                        </p>
+                      )}
+                
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-600">Progress</span>
-                      <span className="font-medium">
-                        {formatCurrency(goal.currentAmount)} /{" "}
-                        {formatCurrency(goal.targetAmount)}
-                      </span>
+                        <span className="text-slate-500 text-xs font-medium uppercase tracking-wider">Progress</span>
+                        <span className="font-bold text-slate-700">
+                            {progress.toFixed(0)}%
+                        </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
                       <div
-                        className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(
-                          progress
-                        )}`}
+                        className={`h-full rounded-full transition-all duration-500 ease-out ${getProgressColor(progress)}`}
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>{progress.toFixed(1)}% complete</span>
-                      <span>
-                        {formatCurrency(goal.targetAmount - goal.currentAmount)}{" "}
-                        remaining
-                      </span>
+                    <div className="flex justify-between text-xs text-slate-500 mt-2 font-medium">
+                      <span>{formatCurrency(goal.currentAmount)}</span>
+                      <span>{formatCurrency(goal.targetAmount)}</span>
                     </div>
                   </div>
 
                   {goal.targetDate && (
-                    <p className="text-xs text-gray-500">
-                      Target: {new Date(goal.targetDate).toLocaleDateString()}
-                    </p>
-                  )}
-
-                  {!goal.isCompleted && (
-                    <button
-                      onClick={() => handleContribute(goal)}
-                      className="w-full btn-secondary text-sm"
-                    >
-                      Add Contribution
-                    </button>
+                    <div className="flex items-center text-xs text-slate-500 bg-slate-50 p-2 rounded-lg">
+                       <FiCalendar className="mr-2 text-slate-400" />
+                       Target: {new Date(goal.targetDate).toLocaleDateString()}
+                    </div>
                   )}
                 </div>
-              </div>
+                
+                 <div className="mt-6 pt-4 border-t border-slate-50">
+                     {goal.isCompleted ? (
+                         <div className="w-full py-2 bg-emerald-50 text-emerald-700 text-center rounded-xl text-sm font-bold border border-emerald-100">
+                             Goal Completed! 🎉
+                         </div>
+                     ) : (
+                        <Button
+                            variant="secondary"
+                            fullWidth
+                            size="sm"
+                            onClick={() => handleContribute(goal)}
+                        >
+                            Add Contribution
+                        </Button>
+                     )}
+                 </div>
+              </Card>
             );
           })
         )}
       </div>
 
       {/* Add/Edit Goal Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              {editingGoal ? "Edit Goal" : "Add New Goal"}
-            </h3>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingGoal(null);
+          reset();
+        }}
+        title={editingGoal ? "Edit Goal" : "New Goal"}
+      >
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <Input
+            label="Goal Name"
+            placeholder="e.g., Dream Vacation"
+            error={errors.name?.message}
+            {...register("name")}
+          />
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div>
-                <label className="form-label">Goal Name *</label>
-                <input
-                  type="text"
-                  {...register("name")}
-                  className="form-input"
-                  placeholder="e.g., Emergency Fund, Vacation, New Car"
-                />
-                {errors.name && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.name.message}
-                  </p>
-                )}
-              </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Description</label>
+            <textarea
+              {...register("description")}
+              className="block w-full rounded-xl border-slate-200 bg-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-3"
+              rows={2}
+              placeholder="Optional details..."
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Target Amount"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                error={errors.targetAmount?.message}
+                {...register("targetAmount", { valueAsNumber: true })}
+              />
+              
+              <Input
+                label="Target Date"
+                type="date"
+                {...register("targetDate")}
+              />
+          </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="form-label">Description</label>
-                <textarea
-                  {...register("description")}
-                  className="form-input"
-                  rows={2}
-                  placeholder="Optional description"
-                />
-              </div>
-
-              <div>
-                <label className="form-label">Target Amount *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  {...register("targetAmount", { valueAsNumber: true })}
-                  className="form-input"
-                  placeholder="10000"
-                />
-                {errors.targetAmount && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.targetAmount.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="form-label">Target Date</label>
-                <input
-                  type="date"
-                  {...register("targetDate")}
-                  className="form-input"
-                />
-              </div>
-
-              <div>
-                <label className="form-label">Category *</label>
-                <select {...register("category")} className="form-input">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Category</label>
+                <select {...register("category")} className="block w-full rounded-xl border-slate-200 bg-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2.5">
                   <option value="emergency">Emergency Fund</option>
                   <option value="vacation">Vacation</option>
                   <option value="house">House/Property</option>
@@ -558,132 +503,116 @@ const GoalsPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="form-label">Priority *</label>
-                <select {...register("priority")} className="form-input">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Priority</label>
+                <select {...register("priority")} className="block w-full rounded-xl border-slate-200 bg-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2.5">
                   <option value="high">High</option>
                   <option value="medium">Medium</option>
                   <option value="low">Low</option>
                 </select>
               </div>
+          </div>
 
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
+          <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+            <Button
+                variant="secondary"
+                type="button"
+                onClick={() => {
                     setIsModalOpen(false);
                     setEditingGoal(null);
                     reset();
-                  }}
-                  className="btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={
-                    createMutation.isPending || updateMutation.isPending
-                  }
-                  className="btn-primary"
-                >
-                  {createMutation.isPending || updateMutation.isPending
-                    ? "Saving..."
-                    : editingGoal
-                    ? "Update Goal"
-                    : "Create Goal"}
-                </button>
-              </div>
-            </form>
+                }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              isLoading={createMutation.isPending || updateMutation.isPending}
+            >
+              {editingGoal ? "Save Changes" : "Create Goal"}
+            </Button>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
 
       {/* Contribution Modal */}
-      {isContributionModalOpen && selectedGoal && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Add Contribution to "{selectedGoal.name}"
-            </h3>
-
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <p className="text-sm text-gray-600 mb-2">Current Progress:</p>
-              <p className="text-lg font-semibold">
-                {formatCurrency(selectedGoal.currentAmount)} /{" "}
-                {formatCurrency(selectedGoal.targetAmount)}
-              </p>
-              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                <div
-                  className={`h-2 rounded-full ${getProgressColor(
-                    getProgressPercentage(
-                      selectedGoal.currentAmount,
-                      selectedGoal.targetAmount
-                    )
-                  )}`}
-                  style={{
-                    width: `${getProgressPercentage(
-                      selectedGoal.currentAmount,
-                      selectedGoal.targetAmount
-                    )}%`,
-                  }}
-                />
-              </div>
+      {selectedGoal && (
+        <Modal
+          isOpen={isContributionModalOpen}
+          onClose={() => {
+            setIsContributionModalOpen(false);
+            setSelectedGoal(null);
+            resetContribution();
+          }}
+          title={`Add to "${selectedGoal.name}"`}
+          size="sm"
+        >
+          <div className="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-100">
+            <div className="flex justify-between text-sm text-slate-500 mb-2">
+                <span>Current Progress</span>
+                <span>{(getProgressPercentage(selectedGoal.currentAmount, selectedGoal.targetAmount)).toFixed(0)}%</span>
             </div>
+            <div className="w-full bg-slate-200 rounded-full h-2">
+              <div
+                className={`h-2 rounded-full ${getProgressColor(
+                  getProgressPercentage(
+                    selectedGoal.currentAmount,
+                    selectedGoal.targetAmount
+                  )
+                )}`}
+                style={{
+                  width: `${getProgressPercentage(
+                    selectedGoal.currentAmount,
+                    selectedGoal.targetAmount
+                  )}%`,
+                }}
+              />
+            </div>
+              <p className="text-center mt-2 font-semibold text-slate-700">
+              {formatCurrency(selectedGoal.currentAmount)} <span className="text-slate-400 font-normal">/ {formatCurrency(selectedGoal.targetAmount)}</span>
+            </p>
+          </div>
 
-            <form
-              onSubmit={handleContributionSubmit(onContributionSubmit)}
-              className="space-y-4"
-            >
-              <div>
-                <label className="form-label">Contribution Amount *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  {...registerContribution("amount", { valueAsNumber: true })}
-                  className="form-input"
-                  placeholder="100.00"
-                />
-                {contributionErrors.amount && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {contributionErrors.amount.message}
-                  </p>
-                )}
-              </div>
+          <form
+            onSubmit={handleContributionSubmit(onContributionSubmit)}
+            className="space-y-4"
+          >
+            <Input
+              label="Amount to Add"
+              type="number"
+              step="0.01"
+              placeholder="0.00"
+              error={contributionErrors.amount?.message}
+              {...registerContribution("amount", { valueAsNumber: true })}
+              autoFocus
+            />
 
-              <div>
-                <label className="form-label">Description</label>
-                <input
-                  type="text"
-                  {...registerContribution("description")}
-                  className="form-input"
-                  placeholder="e.g., Monthly savings, Bonus contribution"
-                />
-              </div>
+            <Input
+              label="Note (Optional)"
+              placeholder="e.g., Monthly savings"
+              {...registerContribution("description")}
+            />
 
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
+            <div className="flex justify-end space-x-3 pt-4">
+              <Button
+                  variant="secondary"
                   type="button"
                   onClick={() => {
-                    setIsContributionModalOpen(false);
-                    setSelectedGoal(null);
-                    resetContribution();
+                      setIsContributionModalOpen(false);
+                      setSelectedGoal(null);
+                      resetContribution();
                   }}
-                  className="btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={contributionMutation.isPending}
-                  className="btn-primary"
-                >
-                  {contributionMutation.isPending
-                    ? "Adding..."
-                    : "Add Contribution"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                isLoading={contributionMutation.isPending}
+              >
+                Confirm Contribution
+              </Button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

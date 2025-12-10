@@ -2,7 +2,10 @@
 import axios from "axios";
 import API_BASE_URL from "../config";
 
-const API_URL = `${API_BASE_URL}/api/v1`;
+const safeBaseUrl = API_BASE_URL || "http://localhost:4000";
+const API_URL = safeBaseUrl.endsWith('/api/v1') 
+  ? safeBaseUrl 
+  : `${safeBaseUrl}/api/v1`;
 
 // Create axios instance with credentials for cookies
 export const api = axios.create({

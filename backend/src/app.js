@@ -37,7 +37,8 @@ const { errorHandler } = require('./middlewares/error');
 const app = express();
 
 // connect to DB
-connectDB(config.mongoUri);
+// connect to DB
+// connectDB(config.mongoUri); // REMOVED: Managed in index.js to prevent double connection
 
 // Enhanced logging middleware (before other middleware)
 app.use(requestTracking);
@@ -68,28 +69,29 @@ app.use(helmet({
 }));
 
 // Rate limiting - DISABLED for development
-// const limiter = rateLimit({
-//     windowMs: 15 * 60 * 1000, // 15 minutes
-//     max: 1000, // limit each IP to 1000 requests per windowMs (very relaxed for dev)
-//     message: 'Too many requests from this IP, please try again later.',
-//     standardHeaders: true,
-//     legacyHeaders: false,
-// });
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 1000, // limit each IP to 1000 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 // Auth rate limiting - DISABLED for development
-// const authLimiter = rateLimit({
-//     windowMs: 5 * 60 * 1000, // 5 minutes (longer window)
-//     max: 500, // limit each IP to 500 auth requests per 5 minutes (extremely relaxed for dev)
-//     message: 'Too many authentication attempts, please try again later.',
-//     standardHeaders: true,
-//     legacyHeaders: false,
-// });
+const authLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000, // 5 minutes (longer window)
+    max: 500, // limit each IP to 500 auth requests per 5 minutes
+    message: 'Too many authentication attempts, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
-// app.use(limiter); // DISABLED for development
+app.use(limiter); // Enabled for Rate Limiting
 
 // CORS configuration - Allow all origins
+// CORS configuration - Allow specific frontend origin
 app.use(cors({
-    origin: "*",
+    origin: process.env.FRONTEND_URL || "http://localhost:5173", // Allow Netlify/Localhost
     credentials: true,
     methods: "GET,POST,PUT,DELETE,PATCH",
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -123,7 +125,7 @@ app.get('/api/:version/info', getApiInfo);
 app.get('/api/:version/health', getVersionedHealth);
 
 // Apply stricter rate limiting to auth routes - DISABLED for development
-app.use('/api/v1/auth', authRoutes); // No rate limiting in development
+app.use('/api/v1/auth', authLimiter, authRoutes); // Apply specific auth limiter
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/transactions', transactionRoutes);
 app.use('/api/v1/budgets', budgetRoutes);

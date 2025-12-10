@@ -1,5 +1,5 @@
 // Main App component with routing and providers
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -12,17 +12,19 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
 import ErrorBoundary from "./components/common/ErrorBoundary";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import DashboardLayout from "./components/layout/DashboardLayout";
-import DashboardPage from "./pages/DashboardPage";
-import TransactionsPage from "./pages/TransactionsPage";
-import CategoriesPage from "./pages/CategoriesPage";
-import BudgetsPage from "./pages/BudgetsPage";
-import GoalsPage from "./pages/GoalsPage";
-import AdminPage from "./pages/AdminPage";
-import SettingsPage from "./pages/SettingsPage";
 import LoadingSpinner from "./components/common/LoadingSpinner";
+import DashboardLayout from "./components/layout/DashboardLayout";
+
+// Lazy load pages for performance optimization
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const TransactionsPage = lazy(() => import("./pages/TransactionsPage"));
+const CategoriesPage = lazy(() => import("./pages/CategoriesPage"));
+const BudgetsPage = lazy(() => import("./pages/BudgetsPage"));
+const GoalsPage = lazy(() => import("./pages/GoalsPage"));
+const AdminPage = lazy(() => import("./pages/AdminPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 
 // Protected route wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
@@ -77,103 +79,105 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 const AppRoutes: React.FC = () => {
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route
-        path="/login"
-        element={
-          <PublicRoute>
-            <LoginPage />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/register"
-        element={
-          <PublicRoute>
-            <RegisterPage />
-          </PublicRoute>
-        }
-      />
+    <Suspense fallback={<div className="flex h-screen items-center justify-center"><LoadingSpinner /></div>}>
+      <Routes>
+        {/* Public routes */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <RegisterPage />
+            </PublicRoute>
+          }
+        />
 
-      {/* Protected routes */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <DashboardPage />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/transactions"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <TransactionsPage />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/categories"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <CategoriesPage />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/budgets"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <BudgetsPage />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/goals"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <GoalsPage />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <SettingsPage />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
+        {/* Protected routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <DashboardPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/transactions"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <TransactionsPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/categories"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <CategoriesPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/budgets"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <BudgetsPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/goals"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <GoalsPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <SettingsPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Admin routes */}
-      <Route
-        path="/admin"
-        element={
-          <AdminRoute>
-            <DashboardLayout>
-              <AdminPage />
-            </DashboardLayout>
-          </AdminRoute>
-        }
-      />
+        {/* Admin routes */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <AdminPage />
+              </DashboardLayout>
+            </AdminRoute>
+          }
+        />
 
-      {/* Default redirect */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+        {/* Default redirect */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Suspense>
   );
 };
 

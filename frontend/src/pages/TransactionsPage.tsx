@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { FiEdit, FiTrash2, FiPlus, FiFilter } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiPlus, FiFilter, FiSearch, FiArrowUp, FiArrowDown } from "react-icons/fi";
 import {
   getTransactions,
   createTransaction,
@@ -14,6 +14,10 @@ import {
 import { getCategories } from "../services/categories";
 import { useCurrency } from "../hooks/useCurrency";
 import LoadingSpinner from "../components/common/LoadingSpinner";
+import { Card } from "../components/common/Card";
+import { Button } from "../components/common/Button";
+import { Input } from "../components/common/Input";
+import { Modal } from "../components/common/Modal";
 import type { Transaction, TransactionInput } from "../types";
 
 const transactionSchema = z.object({
@@ -169,153 +173,162 @@ const TransactionsPage: React.FC = () => {
   }
 
   return (
-    <div>
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
-            <p className="mt-1 text-sm text-gray-600">
-              Manage your income and expenses
-            </p>
-          </div>
-          <button
-            onClick={openModal}
-            className="btn-primary flex items-center space-x-2"
-          >
-            <FiPlus className="h-4 w-4" />
-            <span>Add Transaction</span>
-          </button>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Transactions</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Track and manage your income and expenses
+          </p>
         </div>
+        <Button onClick={openModal} icon={<FiPlus className="w-4 h-4" />}>
+          Add Transaction
+        </Button>
       </div>
 
       {/* Filters */}
-      <div className="card mb-6">
-        <div className="flex items-center space-x-4">
-          <FiFilter className="h-5 w-5 text-gray-400" />
-          <select
-            value={filters.type}
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                type: e.target.value as "" | "income" | "expense",
-              })
-            }
-            className="form-input w-auto"
-          >
-            <option value="">All Types</option>
-            <option value="income">Income</option>
-            <option value="expense">Expense</option>
-          </select>
-          <input
-            type="date"
-            value={filters.startDate}
-            onChange={(e) =>
-              setFilters({ ...filters, startDate: e.target.value })
-            }
-            className="form-input w-auto"
-            placeholder="Start Date"
-          />
-          <input
-            type="date"
-            value={filters.endDate}
-            onChange={(e) =>
-              setFilters({ ...filters, endDate: e.target.value })
-            }
-            className="form-input w-auto"
-            placeholder="End Date"
-          />
-          <button
+      <Card className="p-4">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="flex-1 w-full sm:w-auto relative">
+                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <FiFilter className="h-4 w-4" />
+                 </div>
+                 <select
+                    value={filters.type}
+                    onChange={(e) =>
+                    setFilters({
+                        ...filters,
+                        type: e.target.value as "" | "income" | "expense",
+                    })
+                    }
+                    className="block w-full pl-10 pr-4 py-2 text-sm border-slate-200 rounded-xl focus:ring-primary-500 focus:border-primary-500"
+                >
+                    <option value="">All Types</option>
+                    <option value="income">Income</option>
+                    <option value="expense">Expense</option>
+                </select>
+            </div>
+          
+           <div className="flex flex-1 gap-2 w-full sm:w-auto">
+                <input
+                    type="date"
+                    value={filters.startDate}
+                    onChange={(e) =>
+                    setFilters({ ...filters, startDate: e.target.value })
+                    }
+                    className="block w-full px-4 py-2 text-sm border-slate-200 rounded-xl focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="Start Date"
+                />
+                <input
+                    type="date"
+                    value={filters.endDate}
+                    onChange={(e) =>
+                    setFilters({ ...filters, endDate: e.target.value })
+                    }
+                    className="block w-full px-4 py-2 text-sm border-slate-200 rounded-xl focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="End Date"
+                />
+           </div>
+          
+          <Button
+            variant="secondary"
             onClick={() => setFilters({ type: "", startDate: "", endDate: "" })}
-            className="btn-secondary"
+            className="w-full sm:w-auto"
           >
             Clear Filters
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
-      {/* Transactions Table */}
-      <div className="card">
+      {/* Transactions Table/List */}
+        <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 hidden md:table">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-slate-100 hidden md:table">
+            <thead className="bg-slate-50/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Date
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Description
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Category
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Type
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Amount
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-slate-50">
               {transactions.length === 0 ? (
                 <tr>
                   <td
                     colSpan={6}
-                    className="px-6 py-8 text-center text-gray-500"
+                    className="px-6 py-12 text-center text-slate-500"
                   >
-                    No transactions found. Add your first transaction to get
-                    started.
+                    <div className="flex flex-col items-center justify-center">
+                        <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3">
+                            <FiSearch className="h-6 w-6 text-slate-400" />
+                        </div>
+                        <p>No transactions found matching your filters.</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 transactions.map((transaction) => (
-                  <tr key={transaction._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <tr key={transaction._id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                       {new Date(transaction.date).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-6 py-4 text-sm font-medium text-slate-900">
                       {transaction.description || "No description"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {transaction.category?.name || "Uncategorized"}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                             {transaction.category?.name || "Uncategorized"}
+                        </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          transaction.type === "income"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {transaction.type}
-                      </span>
+                       {transaction.type === 'income' ? (
+                           <span className="inline-flex items-center gap-1 text-emerald-600 text-sm font-medium">
+                               <FiArrowUp className="w-3 h-3" /> Income
+                           </span>
+                       ) : (
+                           <span className="inline-flex items-center gap-1 text-red-600 text-sm font-medium">
+                               <FiArrowDown className="w-3 h-3" /> Expense
+                           </span>
+                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
                       <span
                         className={
                           transaction.type === "income"
-                            ? "text-green-600"
-                            : "text-red-600"
+                            ? "text-emerald-600"
+                            : "text-slate-900"
                         }
                       >
                         {transaction.type === "income" ? "+" : "-"}
                         {formatCurrency(transaction.amount)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end space-x-2">
                         <button
                           onClick={() => handleEdit(transaction)}
-                          className="text-blue-600 hover:text-blue-500"
+                          className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-blue-600 transition-colors"
                         >
                           <FiEdit className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(transaction._id)}
-                          className="text-red-600 hover:text-red-500"
+                          className="p-1 hover:bg-red-50 rounded text-slate-400 hover:text-red-600 transition-colors"
                           disabled={deleteMutation.isPending}
                         >
                           <FiTrash2 className="h-4 w-4" />
@@ -329,175 +342,187 @@ const TransactionsPage: React.FC = () => {
           </table>
 
           {/* Mobile Cards View */}
-          <div className="md:hidden space-y-4">
+          <div className="md:hidden divide-y divide-slate-100">
             {transactions.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500 mb-4">
-                  No transactions found. Add your first transaction to get
-                  started.
-                </p>
-              </div>
+               <div className="p-8 text-center text-slate-500">
+                    <p>No transactions found.</p>
+               </div>
             ) : (
               transactions.map((transaction) => (
                 <div
                   key={transaction._id}
-                  className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
+                  className="p-4 hover:bg-slate-50 transition-colors"
                 >
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                         <div className={`p-2 rounded-lg ${transaction.type === 'income' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                             {transaction.type === 'income' ? <FiArrowUp className="w-4 h-4" /> : <FiArrowDown className="w-4 h-4" />}
+                         </div>
+                         <div>
+                            <p className="font-semibold text-slate-900">{transaction.description || "No description"}</p>
+                            <p className="text-xs text-slate-500">{new Date(transaction.date).toLocaleDateString()}</p>
+                         </div>
+                    </div>
                     <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      className={`font-semibold ${
                         transaction.type === "income"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {transaction.type}
-                    </span>
-                    <span
-                      className={`text-lg font-medium ${
-                        transaction.type === "income"
-                          ? "text-green-600"
-                          : "text-red-600"
+                          ? "text-emerald-600"
+                          : "text-slate-900"
                       }`}
                     >
                       {transaction.type === "income" ? "+" : "-"}
                       {formatCurrency(transaction.amount)}
                     </span>
                   </div>
-                  <div className="space-y-1 text-sm text-gray-600">
-                    <p>
-                      <strong>Description:</strong>{" "}
-                      {transaction.description || "No description"}
-                    </p>
-                    <p>
-                      <strong>Category:</strong>{" "}
-                      {transaction.category?.name || "Uncategorized"}
-                    </p>
-                    <p>
-                      <strong>Date:</strong>{" "}
-                      {new Date(transaction.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex justify-end space-x-3 mt-3 pt-3 border-t border-gray-100">
-                    <button
-                      onClick={() => handleEdit(transaction)}
-                      className="text-blue-600 hover:text-blue-500"
-                    >
-                      <FiEdit className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(transaction._id)}
-                      className="text-red-600 hover:text-red-500"
-                      disabled={deleteMutation.isPending}
-                    >
-                      <FiTrash2 className="h-4 w-4" />
-                    </button>
+                  
+                  <div className="flex items-center justify-between mt-3 text-sm">
+                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
+                        {transaction.category?.name || "Uncategorized"}
+                     </span>
+                     <div className="flex space-x-3">
+                        <button
+                            onClick={() => handleEdit(transaction)}
+                            className="text-blue-600 hover:text-blue-700 font-medium text-xs"
+                        >
+                            Edit
+                        </button>
+                        <button
+                            onClick={() => handleDelete(transaction._id)}
+                            className="text-red-600 hover:text-red-700 font-medium text-xs"
+                        >
+                            Delete
+                        </button>
+                     </div>
                   </div>
                 </div>
               ))
             )}
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Add/Edit Transaction Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              {editingTransaction ? "Edit Transaction" : "Add Transaction"}
-            </h3>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingTransaction(null);
+          reset();
+        }}
+        title={editingTransaction ? "Edit Transaction" : "New Transaction"}
+      >
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <Input
+            label="Amount"
+            type="number"
+            step="0.01"
+            placeholder="0.00"
+            error={errors.amount?.message}
+            {...register("amount", { valueAsNumber: true })}
+          />
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div>
-                <label className="form-label">Amount</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  {...register("amount", { valueAsNumber: true })}
-                  className="form-input"
-                />
-                {errors.amount && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.amount.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="form-label">Type</label>
-                <select {...register("type")} className="form-input">
-                  <option value="expense">Expense</option>
-                  <option value="income">Income</option>
-                </select>
-                {errors.type && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.type.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="form-label">Category</label>
-                <select {...register("category")} className="form-input">
-                  <option value="">Select a category</option>
-                  {categories.map((category) => (
-                    <option key={category._id} value={category._id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="form-label">Date</label>
-                <input
-                  type="date"
-                  {...register("date")}
-                  className="form-input"
-                />
-              </div>
-
-              <div>
-                <label className="form-label">Description</label>
-                <input
-                  type="text"
-                  {...register("description")}
-                  className="form-input"
-                  placeholder="Optional description"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setEditingTransaction(null);
-                    reset();
-                  }}
-                  className="btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={
-                    createMutation.isPending || updateMutation.isPending
-                  }
-                  className="btn-primary"
-                >
-                  {createMutation.isPending || updateMutation.isPending
-                    ? "Saving..."
-                    : editingTransaction
-                    ? "Update"
-                    : "Create"}
-                </button>
-              </div>
-            </form>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Type</label>
+            <div className="grid grid-cols-2 gap-3">
+                <label className={`
+                    flex items-center justify-center p-3 rounded-xl border cursor-pointer transition-all
+                    hover:bg-slate-50 relative group
+                `}>
+                    <input type="radio" value="income" {...register("type")} className="absolute opacity-0 w-full h-full cursor-pointer z-10" />
+                     <div className={`flex items-center gap-2 ${filters.type === 'income' ? 'font-semibold text-emerald-600' : 'text-slate-600'}`}>
+                        <span className="z-0">Income</span>
+                     </div>
+                     {/* Custom radio indicator could go here if needed, but styling blindly is risky without watch() */}
+                </label>
+                <label className="flex items-center justify-center p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 relative group">
+                    <input type="radio" value="expense" {...register("type")} className="absolute opacity-0 w-full h-full cursor-pointer z-10" />
+                    <span className="text-slate-600 group-hover:text-red-600 transition-colors">Expense</span>
+                </label>
+            </div>
+             {/* Better implementation for Radio Group needed probably, but keeping it simple for now to match previous logic */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="relative">
+                    <input 
+                        type="radio" 
+                        id="type-income" 
+                        value="income" 
+                        {...register("type")} 
+                        className="peer sr-only"
+                    />
+                    <label 
+                        htmlFor="type-income"
+                        className="flex items-center justify-center p-3 rounded-xl border border-slate-200 cursor-pointer transition-all peer-checked:border-emerald-500 peer-checked:text-emerald-600 peer-checked:bg-emerald-50 hover:bg-slate-50"
+                    >
+                        Income
+                    </label>
+                </div>
+                <div className="relative">
+                    <input 
+                        type="radio" 
+                        id="type-expense" 
+                        value="expense" 
+                        {...register("type")} 
+                        className="peer sr-only"
+                    />
+                    <label 
+                        htmlFor="type-expense"
+                        className="flex items-center justify-center p-3 rounded-xl border border-slate-200 cursor-pointer transition-all peer-checked:border-red-500 peer-checked:text-red-600 peer-checked:bg-red-50 hover:bg-slate-50"
+                    >
+                        Expense
+                    </label>
+                </div>
+            </div>
+             {errors.type && <p className="text-red-500 text-sm mt-1">{errors.type.message}</p>}
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Category</label>
+            <select 
+                {...register("category")} 
+                className="block w-full rounded-xl border-slate-200 bg-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-3"
+            >
+              <option value="">Select a category</option>
+              {categories.map((category) => (
+                <option key={category._id} value={category._id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <Input
+            label="Date"
+            type="date"
+            {...register("date")}
+          />
+
+          <Input
+            label="Description"
+            placeholder="What was this for?"
+            {...register("description")}
+          />
+
+          <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => {
+                setIsModalOpen(false);
+                setEditingTransaction(null);
+                reset();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              isLoading={createMutation.isPending || updateMutation.isPending}
+            >
+              {editingTransaction ? "Save Changes" : "Create Transaction"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
