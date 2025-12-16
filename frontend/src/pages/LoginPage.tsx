@@ -134,13 +134,7 @@ const LoginPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-end">
-            <div className="text-sm">
-              <a href="#" className="font-medium text-primary-400 hover:text-primary-300 transition-colors">
-                Forgot password?
-              </a>
-            </div>
-          </div>
+
 
           <Button
             type="submit"

@@ -1,4 +1,5 @@
 import React from 'react';
+import { twMerge } from 'tailwind-merge';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -8,6 +9,15 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, icon, className = '', ...props }, ref) => {
+    const baseClasses = `
+      block w-full rounded-xl border shadow-sm py-2.5
+      border-slate-200 bg-white text-slate-900
+      focus:border-primary-500 focus:ring-primary-500 sm:text-sm
+      placeholder:text-slate-400
+      ${icon ? 'pl-10 pr-4' : 'px-4'}
+      ${error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}
+    `;
+
     return (
       <div className="w-full">
         {label && (
@@ -23,14 +33,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
           <input
             ref={ref}
-            className={`
-              block w-full rounded-xl border-slate-200 bg-white shadow-sm
-              focus:border-primary-500 focus:ring-primary-500 sm:text-sm
-              placeholder:text-slate-400
-              ${icon ? 'pl-10' : 'pl-4'}
-              ${error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}
-              ${className}
-            `}
+            className={twMerge(baseClasses, className)}
             {...props}
           />
         </div>
@@ -43,3 +46,4 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 );
 
 Input.displayName = 'Input';
+

@@ -274,7 +274,7 @@ const SettingsPage: React.FC = () => {
           <div className="lg:col-span-3">
               {/* Profile Settings */}
               {activeTab === "profile" && (
-                <Card className="animate-in fade-in slide-in-from-right-4 duration-300">
+                <Card className="p-6 animate-in fade-in slide-in-from-right-4 duration-300">
                     <div className="mb-6 pb-4 border-b border-slate-100">
                         <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                             <FiUser className="text-primary-600" />
@@ -319,7 +319,7 @@ const SettingsPage: React.FC = () => {
 
               {/* Security Settings */}
               {activeTab === "security" && (
-                <Card className="animate-in fade-in slide-in-from-right-4 duration-300">
+                <Card className="p-6 animate-in fade-in slide-in-from-right-4 duration-300">
                     <div className="mb-6 pb-4 border-b border-slate-100">
                         <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                             <FiShield className="text-emerald-600" />
@@ -403,7 +403,7 @@ const SettingsPage: React.FC = () => {
 
               {/* Preferences Settings */}
               {activeTab === "preferences" && (
-                <Card className="animate-in fade-in slide-in-from-right-4 duration-300">
+                <Card className="p-6 animate-in fade-in slide-in-from-right-4 duration-300">
                     <div className="mb-6 pb-4 border-b border-slate-100">
                         <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                             <FiCreditCard className="text-amber-600" />
@@ -456,7 +456,7 @@ const SettingsPage: React.FC = () => {
 
               {/* Data Export */}
               {activeTab === "data" && (
-                <Card className="animate-in fade-in slide-in-from-right-4 duration-300">
+                <Card className="p-6 animate-in fade-in slide-in-from-right-4 duration-300">
                      <div className="mb-6 pb-4 border-b border-slate-100">
                         <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                             <FiDownload className="text-indigo-600" />
@@ -498,7 +498,7 @@ const SettingsPage: React.FC = () => {
 
               {/* Danger Zone */}
               {activeTab === "danger" && (
-                <Card className="border-red-100 bg-red-50/30 animate-in fade-in slide-in-from-right-4 duration-300">
+                <Card className="p-6 border-red-100 bg-red-50/30 animate-in fade-in slide-in-from-right-4 duration-300">
                      <div className="mb-6 pb-4 border-b border-red-100">
                         <h2 className="text-xl font-bold text-red-700 flex items-center gap-2">
                             <FiTrash2 className="text-red-600" />

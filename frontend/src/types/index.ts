@@ -6,6 +6,8 @@ export interface User {
   email: string;
   role: "user" | "admin";
   isActive: boolean;
+  activatedAt?: string;
+  expiresAt?: string;
   createdAt: string;
   updatedAt: string;
   settings?: {

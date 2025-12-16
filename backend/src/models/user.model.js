@@ -6,7 +6,9 @@ const userSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true, index: true },
     password: { type: String, required: true },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
-    isActive: { type: Boolean, default: true },
+    isActive: { type: Boolean, default: false }, // Default to false for new users
+    activatedAt: { type: Date },
+    expiresAt: { type: Date },
     refreshToken: { type: String },
     profilePicture: { type: String, default: null },
     settings: {
@@ -39,5 +41,6 @@ const userSchema = new mongoose.Schema({
 // Additional indexes for performance
 userSchema.index({ isActive: 1 }); // Filter active users
 userSchema.index({ role: 1 }); // Admin queries
+userSchema.index({ expiresAt: 1 }); // Query expiring subscriptions
 
 module.exports = mongoose.model('User', userSchema);

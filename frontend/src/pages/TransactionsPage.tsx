@@ -423,23 +423,6 @@ const TransactionsPage: React.FC = () => {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Type</label>
-            <div className="grid grid-cols-2 gap-3">
-                <label className={`
-                    flex items-center justify-center p-3 rounded-xl border cursor-pointer transition-all
-                    hover:bg-slate-50 relative group
-                `}>
-                    <input type="radio" value="income" {...register("type")} className="absolute opacity-0 w-full h-full cursor-pointer z-10" />
-                     <div className={`flex items-center gap-2 ${filters.type === 'income' ? 'font-semibold text-emerald-600' : 'text-slate-600'}`}>
-                        <span className="z-0">Income</span>
-                     </div>
-                     {/* Custom radio indicator could go here if needed, but styling blindly is risky without watch() */}
-                </label>
-                <label className="flex items-center justify-center p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 relative group">
-                    <input type="radio" value="expense" {...register("type")} className="absolute opacity-0 w-full h-full cursor-pointer z-10" />
-                    <span className="text-slate-600 group-hover:text-red-600 transition-colors">Expense</span>
-                </label>
-            </div>
-             {/* Better implementation for Radio Group needed probably, but keeping it simple for now to match previous logic */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="relative">
                     <input 

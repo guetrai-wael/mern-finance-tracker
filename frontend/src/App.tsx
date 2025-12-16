@@ -25,6 +25,7 @@ const BudgetsPage = lazy(() => import("./pages/BudgetsPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 
 // Protected route wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
@@ -39,6 +40,38 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
+
+  // --- NEW SUBSCRIPTION CHECK ---
+  // If user is not active, redirect to subscription page
+  // But allow admin to bypass or if they are already on the subscription page (handled by routing)
+  const { user } = useAuth();
+  
+  // Safety check: admins bypass everything
+  if (user?.role === 'admin') {
+      return <>{children}</>;
+  }
+
+  // Regular user check
+  const isSubscriptionPage = window.location.pathname === '/subscription';
+
+  if (user && !user.isActive) {
+      if (!isSubscriptionPage) {
+          return <Navigate to="/subscription" replace />;
+      }
+      return <>{children}</>;
+  }
+  
+  // Expiry check (if expiresAt exists)
+  if (user?.expiresAt) {
+      const isExpired = new Date(user.expiresAt) < new Date();
+      if (isExpired) {
+          if (!isSubscriptionPage) {
+            return <Navigate to="/subscription" replace />;
+          }
+          return <>{children}</>;
+      }
+  }
+  // -----------------------------
 
   return <>{children}</>;
 };
@@ -96,6 +129,14 @@ const AppRoutes: React.FC = () => {
             <PublicRoute>
               <RegisterPage />
             </PublicRoute>
+          }
+        />
+        <Route
+          path="/subscription"
+          element={
+            <ProtectedRoute>
+                 <SubscriptionPage />
+            </ProtectedRoute>
           }
         />
 

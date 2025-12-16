@@ -3,10 +3,12 @@ const express = require('express');
 const router = express.Router();
 const ctrl = require('../controllers/goals.controller');
 const auth = require('../middlewares/auth');
+const checkSubscription = require('../middlewares/checkSubscription');
 const { validateBody, validateParams, validateMultiple, sanitizeInput } = require('../middleware/validation');
 const { goalSchemas, paramSchemas } = require('../schemas/validationSchemas');
 
 router.use(auth);
+router.use(checkSubscription);
 router.use(sanitizeInput);
 
 router.get('/', ctrl.listGoals);

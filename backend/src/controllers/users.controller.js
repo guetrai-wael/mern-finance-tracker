@@ -35,4 +35,35 @@ const deleteUser = asyncHandler(async (req, res) => {
     return success(res, null, 'User deleted successfully');
 });
 
-module.exports = { listUsers, getUser, updateUser, deleteUser };
+const activateUser = asyncHandler(async (req, res) => {
+    const userId = req.params.id;
+    const now = new Date();
+    const expiresAt = new Date(now);
+    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days subscription
+
+    const user = await User.findByIdAndUpdate(userId, {
+        isActive: true,
+        activatedAt: now,
+        expiresAt: expiresAt
+    }, { new: true }).select('-password -refreshToken');
+
+    if (!user) return error(res, 'User not found', 404);
+
+    logger.info(`User activated by admin`, { targetUserId: userId, adminId: req.user._id });
+    return success(res, user, 'User activated successfully');
+});
+
+const deactivateUser = asyncHandler(async (req, res) => {
+    const userId = req.params.id;
+
+    const user = await User.findByIdAndUpdate(userId, {
+        isActive: false
+    }, { new: true }).select('-password -refreshToken');
+
+    if (!user) return error(res, 'User not found', 404);
+
+    logger.info(`User deactivated by admin`, { targetUserId: userId, adminId: req.user._id });
+    return success(res, user, 'User deactivated successfully');
+});
+
+module.exports = { listUsers, getUser, updateUser, deleteUser, activateUser, deactivateUser };

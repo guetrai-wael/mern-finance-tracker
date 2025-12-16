@@ -3,10 +3,12 @@ const express = require('express');
 const router = express.Router();
 const ctrl = require('../controllers/transactions.controller');
 const auth = require('../middlewares/auth');
+const checkSubscription = require('../middlewares/checkSubscription');
 const { validateBody, validateQuery, validateParams, validateMultiple, sanitizeInput } = require('../middleware/validation');
 const { transactionSchemas, paramSchemas } = require('../schemas/validationSchemas');
 
 router.use(auth);
+router.use(checkSubscription);
 router.use(sanitizeInput);
 
 router.get('/', validateQuery(transactionSchemas.list), ctrl.listTransactions);

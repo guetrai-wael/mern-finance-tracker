@@ -33,6 +33,7 @@ const categoryRoutes = require('./routes/categories');
 const exportRoutes = require('./routes/export');
 const goalsRoutes = require('./routes/goals');
 const { errorHandler } = require('./middlewares/error');
+const checkSubscription = require('./middlewares/checkSubscription');
 
 const app = express();
 
@@ -125,8 +126,11 @@ app.get('/api/:version/info', getApiInfo);
 app.get('/api/:version/health', getVersionedHealth);
 
 // Apply stricter rate limiting to auth routes - DISABLED for development
+// Apply stricter rate limiting to auth routes - DISABLED for development
 app.use('/api/v1/auth', authLimiter, authRoutes); // Apply specific auth limiter
 app.use('/api/v1/users', userRoutes);
+
+// Protected Business Routes - Require Active Subscription
 app.use('/api/v1/transactions', transactionRoutes);
 app.use('/api/v1/budgets', budgetRoutes);
 app.use('/api/v1/categories', categoryRoutes);

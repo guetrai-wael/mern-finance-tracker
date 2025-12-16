@@ -19,6 +19,12 @@ async function apiRequest(endpoint, options = {}) {
     const data = await response.json();
 
     if (!response.ok) {
+      // Handle Global Subscription Enforcement
+      if (response.status === 403 && data.errorType === 'SUBSCRIPTION_REQUIRED') {
+        window.location.href = '/subscription';
+        return; // Stop processing
+      }
+
       throw new Error(data.message || 'API request failed');
     }
 
