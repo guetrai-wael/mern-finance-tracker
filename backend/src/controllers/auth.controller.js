@@ -34,6 +34,16 @@ const signup = asyncHandler(async (req, res) => {
     const hashed = await hashPassword(password);
     const user = await User.create({ name, email, password: hashed });
 
+    // Generate tokens and set cookies (auto-login after signup)
+    const access = signAccess({ sub: user._id, role: user.role });
+    const refresh = signRefresh({ sub: user._id });
+    user.refreshToken = refresh;
+    await user.save();
+
+    // Set secure httpOnly cookies
+    res.cookie('accessToken', access, getCookieOptions());
+    res.cookie('refreshToken', refresh, getRefreshCookieOptions());
+
     // Enhanced logging with context
     const contextLogger = req.logger || enhancedLogger;
     contextLogger.auth('user_registration', user._id, {

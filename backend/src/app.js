@@ -92,8 +92,7 @@ const authLimiter = rateLimit({
 
 app.use(limiter); // Enabled for Rate Limiting
 
-// CORS configuration - Allow all origins
-// CORS configuration - Allow specific frontend origin
+// CORS configuration - Allow specific frontend origins
 const allowedOrigins = [
     "http://localhost:5173",
     "https://chahrity.netlify.app",
@@ -144,8 +143,7 @@ app.get('/api/health', getVersionedHealth);
 app.get('/api/:version/info', getApiInfo);
 app.get('/api/:version/health', getVersionedHealth);
 
-// Apply stricter rate limiting to auth routes - DISABLED for development
-// Apply stricter rate limiting to auth routes - DISABLED for development
+// Apply stricter rate limiting to auth routes
 app.use('/api/v1/auth', authLimiter, authRoutes); // Apply specific auth limiter
 app.use('/api/v1/users', userRoutes);
 
