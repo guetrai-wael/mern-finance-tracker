@@ -14,6 +14,7 @@ const getCookieOptions = () => ({
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    path: '/',
     maxAge: 15 * 60 * 1000 // 15 minutes for access token
 });
 
@@ -21,6 +22,7 @@ const getRefreshCookieOptions = () => ({
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days for refresh token
 });
 
@@ -139,17 +141,9 @@ const logout = asyncHandler(async (req, res) => {
         }
     }
 
-    // Clear cookies
-    res.clearCookie('accessToken', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict'
-    });
-    res.clearCookie('refreshToken', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict'
-    });
+    // Clear cookies (must use same options as when setting, including sameSite)
+    res.clearCookie('accessToken', getCookieOptions());
+    res.clearCookie('refreshToken', getRefreshCookieOptions());
 
     return successMessage(res, 'Logged out successfully');
 });

@@ -103,11 +103,8 @@ api.interceptors.response.use(
             : new Error("Token refresh failed")
         );
 
-        // Clear any auth cookies/state
-        document.cookie =
-          "accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        document.cookie =
-          "refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        // Note: httpOnly cookies are cleared by the server via /auth/logout
+        // JavaScript cannot clear httpOnly cookies
 
         // Only redirect if not already on login page
         if (!window.location.pathname.includes("/login")) {

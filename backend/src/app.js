@@ -36,6 +36,7 @@ const { errorHandler } = require('./middlewares/error');
 const checkSubscription = require('./middlewares/checkSubscription');
 
 const app = express();
+app.set("trust proxy", 1);
 
 // connect to DB
 // connect to DB
@@ -76,6 +77,7 @@ const limiter = rateLimit({
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: (req) => req.headers['cf-connecting-ip'] || req.ip, // Use real IP behind Cloudflare
 });
 
 // Auth rate limiting - DISABLED for development
@@ -85,18 +87,35 @@ const authLimiter = rateLimit({
     message: 'Too many authentication attempts, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: (req) => req.headers['cf-connecting-ip'] || req.ip, // Use real IP behind Cloudflare
 });
 
 app.use(limiter); // Enabled for Rate Limiting
 
 // CORS configuration - Allow all origins
 // CORS configuration - Allow specific frontend origin
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://chahrity.netlify.app",
+    "https://chahrity.com"
+];
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173", // Allow Netlify/Localhost
+    origin: function (origin, callback) {
+        // allow server-to-server / curl / postman
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error("CORS policy: Not allowed"), false);
+    },
     credentials: true,
-    methods: "GET,POST,PUT,DELETE,PATCH",
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
 }));
+
 
 // Body parsing middleware
 app.use(express.json({ limit: '10kb' })); // Limit JSON body size
