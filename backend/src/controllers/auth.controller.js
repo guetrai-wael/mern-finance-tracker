@@ -8,6 +8,9 @@ const enhancedLogger = require('../utils/enhancedLogger');
 const asyncHandler = require('../utils/asyncHandler');
 const { success, created, error, successMessage } = require('../utils/response');
 
+const normalizeEmail = (email) => (email || '').trim().toLowerCase();
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // Cookie options for secure JWT storage
 // NOTE: sameSite 'none' is required for cross-origin cookies (frontend on chahrity.com, backend on api.chahrity.com)
 const getCookieOptions = () => ({
@@ -28,11 +31,14 @@ const getRefreshCookieOptions = () => ({
 
 const signup = asyncHandler(async (req, res) => {
     const { name, email, password } = req.body;
-    const exists = await User.findOne({ email });
+    const normalizedEmail = normalizeEmail(email);
+    const exists = await User.findOne({
+        email: new RegExp(`^${escapeRegex(normalizedEmail)}$`, 'i')
+    });
     if (exists) return error(res, 'Email already in use', 400);
 
     const hashed = await hashPassword(password);
-    const user = await User.create({ name, email, password: hashed });
+    const user = await User.create({ name, email: normalizedEmail, password: hashed });
 
     // Generate tokens and set cookies (auto-login after signup)
     const access = signAccess({ sub: user._id, role: user.role });
@@ -60,10 +66,14 @@ const login = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
     const contextLogger = req.logger || enhancedLogger;
 
-    const user = await User.findOne({ email });
+    const normalizedEmail = normalizeEmail(email);
+
+    const user = await User.findOne({
+        email: new RegExp(`^${escapeRegex(normalizedEmail)}$`, 'i')
+    });
     if (!user) {
         contextLogger.security('failed_login_attempt', {
-            email,
+            email: normalizedEmail,
             reason: 'user_not_found',
             ip: req.ip,
             userAgent: req.get('User-Agent')
@@ -71,11 +81,24 @@ const login = asyncHandler(async (req, res) => {
         return error(res, 'Invalid credentials', 401);
     }
 
+    if (user.email !== normalizedEmail) {
+        try {
+            user.email = normalizedEmail;
+            await user.save();
+        } catch (saveError) {
+            logger.warn('Failed to normalize user email during login', {
+                userId: user._id,
+                email: normalizedEmail,
+                error: saveError.message
+            });
+        }
+    }
+
     const ok = await comparePassword(password, user.password);
     if (!ok) {
         contextLogger.security('invalid_password_attempt', {
             userId: user._id,
-            email,
+            email: normalizedEmail,
             ip: req.ip,
             userAgent: req.get('User-Agent')
         });

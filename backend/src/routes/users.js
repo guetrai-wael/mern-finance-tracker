@@ -32,6 +32,12 @@ router.put('/:id', validateParams(paramSchemas.id), ctrl.updateUser);
 
 router.post('/:id/activate', validateParams(paramSchemas.id), ctrl.activateUser);
 router.post('/:id/deactivate', validateParams(paramSchemas.id), ctrl.deactivateUser);
+router.post(
+    '/:id/reset-password',
+    validateParams(paramSchemas.id),
+    validateBody(userSchemas.resetPassword),
+    ctrl.resetUserPassword
+);
 router.delete('/:id', validateParams(paramSchemas.id), ctrl.deleteUser);
 
 module.exports = router;

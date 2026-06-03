@@ -57,6 +57,17 @@ const processQueue = (error: Error | null) => {
   failedQueue = [];
 };
 
+const isAuthEndpoint = (url?: string) => {
+  if (!url) return false;
+
+  return (
+    url.includes("/auth/login") ||
+    url.includes("/auth/signup") ||
+    url.includes("/auth/refresh") ||
+    url.includes("/auth/logout")
+  );
+};
+
 // Response interceptor for automatic token refresh
 api.interceptors.response.use(
   (response) => response,
@@ -67,7 +78,7 @@ api.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url?.includes("/auth/refresh")
+      !isAuthEndpoint(originalRequest.url)
     ) {
       if (isRefreshing) {
         // If already refreshing, queue this request

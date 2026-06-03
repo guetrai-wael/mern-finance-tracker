@@ -264,7 +264,11 @@ const userSchemas = {
         isActive: Joi.boolean().optional()
     }).min(1).required().messages({
         'object.min': 'At least one field must be provided for update'
-    })
+    }),
+
+    resetPassword: Joi.object({
+        newPassword: commonSchemas.strongPassword
+    }).required()
 };
 
 // Parameter validation schemas

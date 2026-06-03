@@ -1,6 +1,7 @@
 /* Users controller: admin operations and user management */
 const User = require('../models/user.model');
 const logger = require('../utils/logger');
+const { hashPassword } = require('../utils/password');
 const asyncHandler = require('../utils/asyncHandler');
 const { success, successList, error } = require('../utils/response');
 
@@ -66,4 +67,19 @@ const deactivateUser = asyncHandler(async (req, res) => {
     return success(res, user, 'User deactivated successfully');
 });
 
-module.exports = { listUsers, getUser, updateUser, deleteUser, activateUser, deactivateUser };
+const resetUserPassword = asyncHandler(async (req, res) => {
+    const userId = req.params.id;
+    const { newPassword } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) return error(res, 'User not found', 404);
+
+    user.password = await hashPassword(newPassword);
+    user.refreshToken = null; // Force re-login after admin reset
+    await user.save();
+
+    logger.info('User password reset by admin', { targetUserId: userId, adminId: req.user._id });
+    return success(res, null, 'Password reset successfully');
+});
+
+module.exports = { listUsers, getUser, updateUser, deleteUser, activateUser, deactivateUser, resetUserPassword };

@@ -10,11 +10,13 @@ import {
   FiDownload,
   FiUserCheck,
   FiUserX,
+  FiKey,
 } from "react-icons/fi";
 import {
   getUsers,
   updateUser,
   deleteUser,
+  resetUserPassword,
   exportUsers,
 } from "../services/users";
 import LoadingSpinner from "../components/common/LoadingSpinner";
@@ -32,12 +34,24 @@ const userUpdateSchema = z.object({
   isActive: z.boolean(),
 });
 
+const resetPasswordSchema = z.object({
+  newPassword: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least 1 uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least 1 lowercase letter")
+    .regex(/\d/, "Password must contain at least 1 number"),
+});
+
 type UserUpdateFormData = z.infer<typeof userUpdateSchema>;
+type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
 const AdminPage: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deleteConfirmUser, setDeleteConfirmUser] = useState<User | null>(null);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [resetUser, setResetUser] = useState<User | null>(null);
 
   const queryClient = useQueryClient();
   const { showSuccess, showError } = useToast();
@@ -111,6 +125,15 @@ const AdminPage: React.FC = () => {
     resolver: zodResolver(userUpdateSchema),
   });
 
+  const {
+    register: registerReset,
+    handleSubmit: handleResetSubmit,
+    reset: resetPasswordForm,
+    formState: { errors: resetErrors },
+  } = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+  });
+
   const onSubmit = (data: UserUpdateFormData) => {
     if (!editingUser) return;
 
@@ -127,6 +150,21 @@ const AdminPage: React.FC = () => {
     });
   };
 
+  const resetPasswordMutation = useMutation({
+    mutationFn: ({ id, newPassword }: { id: string; newPassword: string }) =>
+      resetUserPassword(id, newPassword),
+    onSuccess: () => {
+      setIsResetModalOpen(false);
+      setResetUser(null);
+      resetPasswordForm();
+      showSuccess("Password reset successfully");
+    },
+    onError: (error: any) => {
+      console.error("Reset password error:", error);
+      showError(error?.response?.data?.message || "Failed to reset password");
+    },
+  });
+
   const handleEdit = (user: User) => {
     console.log("Editing user:", user);
     setEditingUser(user);
@@ -142,12 +180,24 @@ const AdminPage: React.FC = () => {
     setDeleteConfirmUser(user);
   };
 
+  const handleResetPassword = (user: User) => {
+    setResetUser(user);
+    setIsResetModalOpen(true);
+  };
+
   const confirmDelete = () => {
     if (deleteConfirmUser) {
       const userId = deleteConfirmUser._id || deleteConfirmUser.id;
       console.log("Confirming delete for ID:", userId);
       deleteMutation.mutate(userId);
     }
+  };
+
+  const onResetPassword = (data: ResetPasswordFormData) => {
+    if (!resetUser) return;
+
+    const userId = resetUser._id || resetUser.id;
+    resetPasswordMutation.mutate({ id: userId, newPassword: data.newPassword });
   };
 
   const toggleUserStatus = (user: User) => {
@@ -304,6 +354,13 @@ const AdminPage: React.FC = () => {
                           <FiEdit className="h-4 w-4" />
                         </button>
                         <button
+                          onClick={() => handleResetPassword(user)}
+                          className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                          title="Reset password"
+                        >
+                          <FiKey className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => handleDelete(user)}
                           className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           disabled={deleteMutation.isPending}
@@ -390,6 +447,43 @@ const AdminPage: React.FC = () => {
               isLoading={updateMutation.isPending}
             >
               Save Changes
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Reset Password Modal */}
+      <Modal
+        isOpen={isResetModalOpen}
+        onClose={() => {
+          setIsResetModalOpen(false);
+          setResetUser(null);
+          resetPasswordForm();
+        }}
+        title={`Reset Password: ${resetUser?.name || ""}`}
+      >
+        <form onSubmit={handleResetSubmit(onResetPassword)} className="space-y-5">
+          <Input
+            label="New Password"
+            type="password"
+            error={resetErrors.newPassword?.message}
+            {...registerReset("newPassword")}
+          />
+
+          <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => {
+                setIsResetModalOpen(false);
+                setResetUser(null);
+                resetPasswordForm();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" isLoading={resetPasswordMutation.isPending}>
+              Reset Password
             </Button>
           </div>
         </form>

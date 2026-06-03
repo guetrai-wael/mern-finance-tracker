@@ -24,6 +24,13 @@ export const deleteUser = async (id: string): Promise<void> => {
   await api.delete(`/users/${id}`);
 };
 
+export const resetUserPassword = async (
+  id: string,
+  newPassword: string
+): Promise<void> => {
+  await api.post(`/users/${id}/reset-password`, { newPassword });
+};
+
 export const exportUsers = async (format: "csv" | "json"): Promise<Blob> => {
   const response = await api.get(`/export/users?format=${format}`, {
     responseType: "blob",
