@@ -57,7 +57,20 @@ async function exportTransactions(req, res, next) {
         // Import Transaction model here to avoid circular dependency
         const Transaction = require('../models/transaction.model');
 
-        const transactions = await Transaction.find({ user: userId })
+        // Mirror the same filter shape as GET /transactions: start, end, type.
+        // Without this, the export ignored the user's current view filters,
+        // which surprised users who hit "Export" after narrowing to a month.
+        const query = { user: userId };
+        if (req.query.start || req.query.end) {
+            query.date = {};
+            if (req.query.start) query.date.$gte = new Date(req.query.start);
+            if (req.query.end) query.date.$lte = new Date(req.query.end);
+        }
+        if (req.query.type === 'income' || req.query.type === 'expense') {
+            query.type = req.query.type;
+        }
+
+        const transactions = await Transaction.find(query)
             .populate('category', 'name')
             .sort({ date: -1 });
 

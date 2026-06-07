@@ -4,13 +4,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { FiEdit, FiTrash2, FiPlus, FiFilter, FiSearch, FiArrowUp, FiArrowDown } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiPlus, FiFilter, FiSearch, FiArrowUp, FiArrowDown, FiDownload } from "react-icons/fi";
 import {
   getTransactions,
   createTransaction,
   updateTransaction,
   deleteTransaction,
+  exportTransactions,
 } from "../services/transactions";
+import { useToast } from "../hooks/useToast";
 import { getCategories } from "../services/categories";
 import { useCurrency } from "../hooks/useCurrency";
 import LoadingSpinner from "../components/common/LoadingSpinner";
@@ -32,7 +34,9 @@ type TransactionFormData = z.infer<typeof transactionSchema>;
 
 const TransactionsPage: React.FC = () => {
   const { formatCurrency } = useCurrency();
+  const { showSuccess, showError } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
   const [filters, setFilters] = useState({
@@ -172,6 +176,35 @@ const TransactionsPage: React.FC = () => {
     return <LoadingSpinner />;
   }
 
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await exportTransactions("csv", {
+        start: filters.startDate || undefined,
+        end: filters.endDate || undefined,
+        type: filters.type || undefined,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `chahrity-transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      showSuccess("Transactions exported");
+    } catch (err: any) {
+      showError(err?.response?.data?.message || "Export failed");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Disable export when there are no rows to export (after filters applied).
+  // Saves the user a confusing "empty CSV" file.
+  const hasFiltersApplied = !!(filters.type || filters.startDate || filters.endDate);
+  const exportDisabled = transactions.length === 0 || isExporting;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -181,9 +214,27 @@ const TransactionsPage: React.FC = () => {
             Track and manage your income and expenses
           </p>
         </div>
-        <Button onClick={openModal} icon={<FiPlus className="w-4 h-4" />}>
-          Add Transaction
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            onClick={handleExport}
+            isLoading={isExporting}
+            disabled={exportDisabled}
+            icon={<FiDownload className="w-4 h-4" />}
+            title={
+              transactions.length === 0
+                ? "No transactions to export"
+                : hasFiltersApplied
+                ? "Export filtered transactions as CSV"
+                : "Export all transactions as CSV"
+            }
+          >
+            Export CSV
+          </Button>
+          <Button onClick={openModal} icon={<FiPlus className="w-4 h-4" />}>
+            Add Transaction
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

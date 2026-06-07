@@ -45,3 +45,18 @@ export const updateTransaction = async (
 export const deleteTransaction = async (id: string): Promise<void> => {
   await api.delete(`/transactions/${id}`);
 };
+
+export const exportTransactions = async (
+  format: "csv" | "json",
+  filters?: TransactionFilters
+): Promise<Blob> => {
+  const params = new URLSearchParams();
+  params.append("format", format);
+  if (filters?.start) params.append("start", filters.start);
+  if (filters?.end) params.append("end", filters.end);
+  if (filters?.type) params.append("type", filters.type);
+  const response = await api.get(`/export/transactions?${params.toString()}`, {
+    responseType: "blob",
+  });
+  return response.data;
+};
