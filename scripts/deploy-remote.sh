@@ -48,7 +48,7 @@ npm install --no-audit --no-fund || fail "npm install failed."
 green "    Dependencies installed."
 
 blue "==> Step 4/6: Boot smoke test"
-npx vitest run tests/smoke.test.js --reporter=default || fail "Smoke test failed. NOT restarting pm2 — your app would crash-loop in prod."
+node scripts/boot-smoke.js || fail "Smoke test failed. NOT restarting pm2 — your app would crash-loop in prod."
 green "    Smoke test passed."
 
 blue "==> Step 5/6: Restart pm2 process"
