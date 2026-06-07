@@ -53,17 +53,25 @@ green "    Smoke test passed."
 
 blue "==> Step 5/6: Restart pm2 process"
 pm2 restart "$PM2_APP" --update-env || fail "pm2 restart failed."
-sleep 3
+sleep 5
 
-# Look for boot errors written AFTER the restart.
-# We grep for ERR_ codes (e.g., ERR_REQUIRE_ESM) in the last 30 lines of the error log.
-recent_errs=$(pm2 logs "$PM2_APP" --err --lines 30 --nostream 2>/dev/null | grep -E "code: 'ERR_|Error \[" | tail -5 || true)
-if [ -n "$recent_errs" ]; then
-    red "Boot errors detected in pm2 error log:"
-    printf '%s\n' "$recent_errs" >&2
-    fail "App may be crash-looping. Inspect with: pm2 logs $PM2_APP"
+# Ground truth: is pm2 reporting 'online' status?
+# We do NOT scrape error logs anymore — too many false positives from
+# non-fatal startup warnings (e.g., ERR_ERL_KEY_GEN_IPV6 from express-rate-limit).
+# The real "is it up" check is the pm2 status + the public health endpoint in step 6.
+pm2_status=$(pm2 jlist 2>/dev/null | node -e "
+const procs = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+const p = procs.find(x => x.name === process.argv[1]);
+if (!p) { console.log('not_found'); process.exit(0); }
+console.log(p.pm2_env.status);
+" "$PM2_APP" 2>/dev/null || echo "unknown")
+
+if [ "$pm2_status" != "online" ]; then
+    red "pm2 reports status '$pm2_status' (expected 'online')."
+    pm2 status "$PM2_APP" >&2 || true
+    fail "App is not running. Inspect with: pm2 logs $PM2_APP"
 fi
-green "    pm2 restarted clean."
+green "    pm2 status: online."
 
 blue "==> Step 6/6: Verify public health endpoint"
 http_code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$HEALTH_URL" || echo "000")
