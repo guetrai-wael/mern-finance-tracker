@@ -54,6 +54,38 @@ const activateUser = asyncHandler(async (req, res) => {
     return success(res, user, 'User activated successfully');
 });
 
+const extendSubscription = asyncHandler(async (req, res) => {
+    const userId = req.params.id;
+    const { days } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) return error(res, 'User not found', 404);
+
+    const now = new Date();
+    // If currently expired or never set, extend from now. If still in the future,
+    // stack the extension onto the existing expiry so paying early doesn't lose days.
+    const base = (user.expiresAt && user.expiresAt > now) ? user.expiresAt : now;
+    const newExpiry = new Date(base);
+    newExpiry.setDate(newExpiry.getDate() + days);
+
+    user.isActive = true;
+    user.expiresAt = newExpiry;
+    if (!user.activatedAt) user.activatedAt = now;
+    await user.save();
+
+    const safe = user.toObject();
+    delete safe.password;
+    delete safe.refreshToken;
+
+    logger.info('User subscription extended by admin', {
+        targetUserId: userId,
+        days,
+        newExpiresAt: newExpiry,
+        adminId: req.user._id
+    });
+    return success(res, safe, `Subscription extended by ${days} days`);
+});
+
 const deactivateUser = asyncHandler(async (req, res) => {
     const userId = req.params.id;
 
@@ -82,4 +114,4 @@ const resetUserPassword = asyncHandler(async (req, res) => {
     return success(res, null, 'Password reset successfully');
 });
 
-module.exports = { listUsers, getUser, updateUser, deleteUser, activateUser, deactivateUser, resetUserPassword };
+module.exports = { listUsers, getUser, updateUser, deleteUser, activateUser, deactivateUser, extendSubscription, resetUserPassword };

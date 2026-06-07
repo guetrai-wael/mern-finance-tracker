@@ -268,6 +268,13 @@ const userSchemas = {
 
     resetPassword: Joi.object({
         newPassword: commonSchemas.strongPassword
+    }).required(),
+
+    extendSubscription: Joi.object({
+        days: Joi.number().integer().min(1).max(365).required().messages({
+            'number.min': 'Days must be at least 1',
+            'number.max': 'Days cannot exceed 365'
+        })
     }).required()
 };
 

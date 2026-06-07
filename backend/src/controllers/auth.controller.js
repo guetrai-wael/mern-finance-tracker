@@ -11,6 +11,11 @@ const { success, created, error, successMessage } = require('../utils/response')
 const normalizeEmail = (email) => (email || '').trim().toLowerCase();
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+// Free-trial length granted to every new signup. After this expires, the
+// checkSubscription middleware blocks protected routes until an admin extends.
+const TRIAL_DAYS = 14;
+const addDays = (n) => new Date(Date.now() + n * 24 * 60 * 60 * 1000);
+
 // Cookie options for secure JWT storage
 // NOTE: sameSite 'none' is required for cross-origin cookies (frontend on chahrity.com, backend on api.chahrity.com)
 const getCookieOptions = () => ({
@@ -38,7 +43,15 @@ const signup = asyncHandler(async (req, res) => {
     if (exists) return error(res, 'Email already in use', 400);
 
     const hashed = await hashPassword(password);
-    const user = await User.create({ name, email: normalizedEmail, password: hashed });
+    const now = new Date();
+    const user = await User.create({
+        name,
+        email: normalizedEmail,
+        password: hashed,
+        isActive: true,
+        activatedAt: now,
+        expiresAt: addDays(TRIAL_DAYS)
+    });
 
     // Generate tokens and set cookies (auto-login after signup)
     const access = signAccess({ sub: user._id, role: user.role });
@@ -59,7 +72,13 @@ const signup = asyncHandler(async (req, res) => {
         userAgent: req.get('User-Agent')
     });
 
-    return created(res, { id: user._id, email: user.email, name: user.name }, 'User created successfully');
+    return created(res, {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        isActive: user.isActive,
+        expiresAt: user.expiresAt
+    }, 'User created successfully');
 });
 
 const login = asyncHandler(async (req, res) => {

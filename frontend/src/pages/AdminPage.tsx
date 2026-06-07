@@ -11,6 +11,7 @@ import {
   FiUserCheck,
   FiUserX,
   FiKey,
+  FiClock,
 } from "react-icons/fi";
 import {
   getUsers,
@@ -18,6 +19,7 @@ import {
   deleteUser,
   resetUserPassword,
   exportUsers,
+  extendSubscription,
 } from "../services/users";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import { useToast } from "../hooks/useToast";
@@ -52,6 +54,8 @@ const AdminPage: React.FC = () => {
   const [deleteConfirmUser, setDeleteConfirmUser] = useState<User | null>(null);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [resetUser, setResetUser] = useState<User | null>(null);
+  const [extendUser, setExtendUser] = useState<User | null>(null);
+  const [extendDays, setExtendDays] = useState<number>(30);
 
   const queryClient = useQueryClient();
   const { showSuccess, showError } = useToast();
@@ -149,6 +153,20 @@ const AdminPage: React.FC = () => {
       },
     });
   };
+
+  const extendMutation = useMutation({
+    mutationFn: ({ id, days }: { id: string; days: number }) =>
+      extendSubscription(id, days),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setExtendUser(null);
+      setExtendDays(30);
+      showSuccess("Subscription extended");
+    },
+    onError: (error: any) => {
+      showError(error?.response?.data?.message || "Failed to extend subscription");
+    },
+  });
 
   const resetPasswordMutation = useMutation({
     mutationFn: ({ id, newPassword }: { id: string; newPassword: string }) =>
@@ -313,15 +331,35 @@ const AdminPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          user.isActive
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {user.isActive ? "Active" : "Inactive"}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium w-fit ${
+                            user.isActive
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {user.isActive ? "Active" : "Inactive"}
+                        </span>
+                        {user.expiresAt && (() => {
+                          const days = Math.ceil(
+                            (new Date(user.expiresAt).getTime() - Date.now()) / 86400000
+                          );
+                          const expired = days < 0;
+                          const soon = !expired && days <= 7;
+                          return (
+                            <span className={`text-xs ${
+                              expired ? "text-red-600 font-medium" :
+                              soon ? "text-amber-600 font-medium" :
+                              "text-slate-500"
+                            }`}>
+                              {expired
+                                ? `Expired ${Math.abs(days)}d ago`
+                                : `${days}d left`}
+                            </span>
+                          );
+                        })()}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                       {new Date(user.createdAt).toLocaleDateString()}
@@ -352,6 +390,13 @@ const AdminPage: React.FC = () => {
                           title="Edit user"
                         >
                           <FiEdit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => { setExtendUser(user); setExtendDays(30); }}
+                          className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                          title="Extend subscription"
+                        >
+                          <FiClock className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleResetPassword(user)}
@@ -487,6 +532,74 @@ const AdminPage: React.FC = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Extend Subscription Modal */}
+      <Modal
+        isOpen={!!extendUser}
+        onClose={() => setExtendUser(null)}
+        title={`Extend subscription: ${extendUser?.name || ""}`}
+      >
+        <div className="space-y-5">
+          <p className="text-sm text-slate-600">
+            {extendUser?.expiresAt
+              ? (() => {
+                  const days = Math.ceil(
+                    (new Date(extendUser.expiresAt).getTime() - Date.now()) / 86400000
+                  );
+                  return days < 0
+                    ? `Currently expired ${Math.abs(days)} day(s) ago. New expiry will be ${extendDays} days from today.`
+                    : `Currently ${days} day(s) left. Adding ${extendDays} days will stack onto the existing expiry.`;
+                })()
+              : `New expiry will be ${extendDays} days from today.`}
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Days to add
+            </label>
+            <div className="flex gap-2">
+              {[7, 30, 60, 90].map((preset) => (
+                <button
+                  key={preset}
+                  onClick={() => setExtendDays(preset)}
+                  className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                    extendDays === preset
+                      ? "bg-primary-50 border-primary-300 text-primary-700"
+                      : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  {preset}d
+                </button>
+              ))}
+              <input
+                type="number"
+                min={1}
+                max={365}
+                value={extendDays}
+                onChange={(e) => setExtendDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)))}
+                className="w-24 px-3 py-1.5 text-sm rounded-lg border border-slate-200 focus:border-primary-500 focus:ring-primary-500"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+            <Button variant="secondary" onClick={() => setExtendUser(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (extendUser) {
+                  const id = extendUser._id || extendUser.id;
+                  extendMutation.mutate({ id, days: extendDays });
+                }
+              }}
+              isLoading={extendMutation.isPending}
+            >
+              Extend {extendDays} days
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       {/* Delete Confirmation Modal */}

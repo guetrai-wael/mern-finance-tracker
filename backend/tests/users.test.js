@@ -53,4 +53,54 @@ describe('User Management (Admin)', () => {
         const updatedUser = await User.findById(targetUser._id);
         expect(updatedUser.isActive).toBe(false);
     });
+
+    it('should extend an expired user by N days from now', async () => {
+        // Set target to expired
+        await User.updateOne(
+            { _id: targetUser._id },
+            { isActive: false, expiresAt: new Date(Date.now() - 86400000) }
+        );
+
+        const res = await request(app)
+            .post(`/api/v1/users/${targetUser._id}/extend`)
+            .set('Cookie', [adminCookie])
+            .send({ days: 30 });
+
+        expect(res.statusCode).toEqual(200);
+        expect(res.body.data.isActive).toBe(true);
+
+        const updated = await User.findById(targetUser._id);
+        const expected = Date.now() + 30 * 86400000;
+        expect(Math.abs(updated.expiresAt.getTime() - expected)).toBeLessThan(60_000);
+    });
+
+    it('should stack extensions onto a non-expired user', async () => {
+        // Set target to expire in 5 days
+        const fiveDaysFromNow = new Date(Date.now() + 5 * 86400000);
+        await User.updateOne(
+            { _id: targetUser._id },
+            { isActive: true, expiresAt: fiveDaysFromNow }
+        );
+
+        const res = await request(app)
+            .post(`/api/v1/users/${targetUser._id}/extend`)
+            .set('Cookie', [adminCookie])
+            .send({ days: 30 });
+
+        expect(res.statusCode).toEqual(200);
+
+        const updated = await User.findById(targetUser._id);
+        // Should be ~5+30 = 35 days from now, not just 30
+        const expected = fiveDaysFromNow.getTime() + 30 * 86400000;
+        expect(Math.abs(updated.expiresAt.getTime() - expected)).toBeLessThan(60_000);
+    });
+
+    it('should reject extend with invalid days', async () => {
+        const res = await request(app)
+            .post(`/api/v1/users/${targetUser._id}/extend`)
+            .set('Cookie', [adminCookie])
+            .send({ days: 0 });
+
+        expect(res.statusCode).toEqual(400);
+    });
 });

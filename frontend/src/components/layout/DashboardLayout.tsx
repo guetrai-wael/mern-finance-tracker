@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { TrialBanner } from "../subscription/TrialBanner";
 import {
   FiHome,
   FiCreditCard,
@@ -150,6 +151,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 {user?.name?.charAt(0) || 'U'}
             </div>
         </div>
+
+        {/* Trial warning banner (only visible last 7 days of subscription) */}
+        <TrialBanner />
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto focus:outline-none p-4 sm:p-6 md:p-8">

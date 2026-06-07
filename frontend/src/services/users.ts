@@ -37,3 +37,11 @@ export const exportUsers = async (format: "csv" | "json"): Promise<Blob> => {
   });
   return response.data;
 };
+
+export const extendSubscription = async (
+  id: string,
+  days: number
+): Promise<{ user: User }> => {
+  const response = await api.post(`/users/${id}/extend`, { days });
+  return { user: response.data.data };
+};
