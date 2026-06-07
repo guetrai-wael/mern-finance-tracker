@@ -23,6 +23,7 @@ const TransactionsPage = lazy(() => import("./pages/TransactionsPage"));
 const CategoriesPage = lazy(() => import("./pages/CategoriesPage"));
 const BudgetsPage = lazy(() => import("./pages/BudgetsPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
+const ReportsPage = lazy(() => import("./pages/ReportsPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
@@ -187,6 +188,16 @@ const AppRoutes: React.FC = () => {
             <ProtectedRoute>
               <DashboardLayout>
                 <GoalsPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <ReportsPage />
               </DashboardLayout>
             </ProtectedRoute>
           }
