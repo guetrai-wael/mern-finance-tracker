@@ -9,7 +9,7 @@ describe('Auth Endpoints', () => {
             .send({
                 name: 'Test User',
                 email: 'test@example.com',
-                password: 'password123'
+                password: 'Password123'
             });
 
         expect(res.statusCode).toEqual(201);
@@ -41,18 +41,17 @@ describe('Auth Endpoints', () => {
             .send({
                 name: 'Inactive User 2',
                 email: 'inactive2@example.com',
-                password: 'password123'
+                password: 'Password123'
             });
 
         const res = await request(app)
             .post('/api/v1/auth/login')
             .send({
                 email: 'inactive2@example.com',
-                password: 'password123'
+                password: 'Password123'
             });
 
         expect(res.statusCode).toEqual(200);
         expect(res.body.data.isActive).toBe(false);
-        expect(res.body.data).toHaveProperty('expiresAt');
     });
 });

@@ -44,6 +44,10 @@ tmp/
 *.tmp
 *.temp
 
+# Audit/scanner reports (regenerated on demand, not source of truth)
+a11y-report.json
+audit-*.json
+
 # OS files
 Thumbs.db
 desktop.ini
