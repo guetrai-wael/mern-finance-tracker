@@ -79,7 +79,7 @@ const requestLogging = (req, res, next) => {
  * Error logging middleware - comprehensive error logging with context
  */
 const errorLogging = (err, req, res, next) => {
-    const errorId = require('uuid').v4();
+    const errorId = require('crypto').randomUUID();
     
     // Prepare error metadata
     const errorMeta = {

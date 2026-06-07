@@ -1,7 +1,7 @@
 /* Enhanced logging system with request tracking and performance metrics */
 const winston = require('winston');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID: uuidv4 } = require('crypto');
 
 // Custom format for structured logging with request context
 const structuredFormat = winston.format.combine(

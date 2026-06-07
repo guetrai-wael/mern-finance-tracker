@@ -96,7 +96,8 @@ app.use(limiter); // Enabled for Rate Limiting
 const allowedOrigins = [
     "http://localhost:5173",
     "https://chahrity.netlify.app",
-    "https://chahrity.com"
+    "https://chahrity.com",
+    "https://www.chahrity.com"
 ];
 
 app.use(cors({
