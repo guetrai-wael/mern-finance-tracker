@@ -17,13 +17,48 @@ import { useDashboardData } from "../hooks/useDashboard";
 import { useCurrency } from "../hooks/useCurrency";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import { Card } from "../components/common/Card";
+import { InsightStrip } from "../components/dashboard/InsightStrip";
+import { computeInsights } from "../utils/insights";
 import type { Transaction } from "../types";
 import { FiArrowUp, FiArrowDown, FiActivity, FiPieChart } from "react-icons/fi";
 
+// Renders a "+12% vs last month" subline under each KPI value. Returns null
+// if the previous month had no signal worth comparing (e.g., income was 0).
+const TrendSubline: React.FC<{ pct: number; suppressIfZero?: boolean }> = ({
+  pct,
+  suppressIfZero,
+}) => {
+  if (suppressIfZero && pct === 0) {
+    return <p className="mt-1 text-xs text-slate-400">No prior-month data</p>;
+  }
+  const up = pct > 0;
+  const sign = up ? "+" : "";
+  return (
+    <p className={`mt-1 text-xs font-medium ${
+      up ? "text-emerald-600" : pct < 0 ? "text-red-600" : "text-slate-400"
+    }`}>
+      {sign}{Math.round(pct)}% vs last month
+    </p>
+  );
+};
+
 const DashboardPage: React.FC = () => {
-  const { stats, monthlyData, categoryBreakdown, isLoading, transactions } =
-    useDashboardData();
+  const {
+    stats,
+    deltas,
+    monthlyData,
+    categoryBreakdown,
+    categoryDeltas,
+    isLoading,
+    transactions,
+    budget,
+  } = useDashboardData();
   const { formatCurrency } = useCurrency();
+
+  const insights = React.useMemo(
+    () => computeInsights({ stats, deltas, categoryDeltas, budget, transactions }),
+    [stats, deltas, categoryDeltas, budget, transactions]
+  );
 
   if (isLoading) {
     return (
@@ -55,6 +90,9 @@ const DashboardPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Insight Strip — narrative cards above the numbers. */}
+      <InsightStrip insights={insights} />
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5 border-l-4 border-l-emerald-500">
@@ -62,6 +100,7 @@ const DashboardPage: React.FC = () => {
             <div>
               <p className="text-sm font-medium text-slate-500">Total Income</p>
               <h3 className="mt-1 text-2xl font-bold text-slate-900">{formatCurrency(stats.totalIncome)}</h3>
+              <TrendSubline pct={deltas.income} suppressIfZero />
             </div>
             <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
               <FiArrowUp className="w-5 h-5" />
@@ -74,6 +113,7 @@ const DashboardPage: React.FC = () => {
             <div>
               <p className="text-sm font-medium text-slate-500">Total Expenses</p>
               <h3 className="mt-1 text-2xl font-bold text-slate-900">{formatCurrency(stats.totalExpenses)}</h3>
+              <TrendSubline pct={deltas.expenses} suppressIfZero />
             </div>
             <div className="p-2 bg-red-50 rounded-lg text-red-600">
               <FiArrowDown className="w-5 h-5" />
@@ -88,6 +128,7 @@ const DashboardPage: React.FC = () => {
               <h3 className={`mt-1 text-2xl font-bold ${stats.balance >= 0 ? 'text-slate-900' : 'text-red-600'}`}>
                 {formatCurrency(stats.balance)}
               </h3>
+              <TrendSubline pct={deltas.balance} suppressIfZero />
             </div>
             <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
               <FiActivity className="w-5 h-5" />
@@ -107,6 +148,11 @@ const DashboardPage: React.FC = () => {
                     {stats.budgetUsed > 90 ? 'Critical' : 'Healthy'}
                 </span>
               </div>
+              <p className="mt-1 text-xs text-slate-400">
+                {budget?.budget?.totalBudget
+                  ? `${formatCurrency(stats.totalExpenses)} of ${formatCurrency(budget.budget.totalBudget)}`
+                  : "No budget set this month"}
+              </p>
             </div>
             <div className="p-2 bg-amber-50 rounded-lg text-amber-600">
               <FiPieChart className="w-5 h-5" />
@@ -178,9 +224,10 @@ const DashboardPage: React.FC = () => {
                 </PieChart>
               </ResponsiveContainer>
              ) : (
-                 <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                     <FiPieChart className="w-12 h-12 mb-2 opacity-50" />
-                     <p>No expense data yet</p>
+                 <div className="h-full flex flex-col items-center justify-center text-slate-500 px-6 text-center">
+                     <FiPieChart className="w-12 h-12 mb-3 opacity-40" />
+                     <p className="font-medium text-slate-700">No expenses to group yet</p>
+                     <p className="text-sm mt-1">Add a <Link to="/categories" className="text-primary-600 underline font-medium">category</Link> and a <Link to="/transactions" className="text-primary-600 underline font-medium">transaction</Link> to see this chart.</p>
                  </div>
              )}
           </div>
@@ -207,7 +254,10 @@ const DashboardPage: React.FC = () => {
         <div className="divide-y divide-slate-50">
             {transactions.length === 0 ? (
                 <div className="p-8 text-center text-slate-500">
-                    <p>No transactions found.</p>
+                    <p className="font-medium text-slate-700">No transactions this month yet</p>
+                    <p className="text-sm mt-1">
+                      <Link to="/transactions" className="text-primary-600 underline font-medium">Log your first one →</Link>
+                    </p>
                 </div>
             ) : (
                 transactions.slice(0, 5).map((transaction: Transaction) => (

@@ -24,6 +24,20 @@ export interface CategoryBreakdown {
   color: string;
 }
 
+export interface PeriodDeltas {
+  income: number;
+  expenses: number;
+  balance: number;
+  budgetUsed: number;
+}
+
+export interface CategoryDelta {
+  name: string;
+  currentMonth: number;
+  threeMonthAvg: number;
+  percentChange: number;
+}
+
 // Generate colors for pie chart
 const COLORS = [
   "#3B82F6",
@@ -165,12 +179,87 @@ export const useDashboardData = () => {
       .slice(0, 8); // Top 8 categories
   }, [transactions]);
 
+  // Last-month totals for "vs last month" trend sublines on KPI cards.
+  // monthlyData is ordered oldest → newest (6 entries: [m-5, m-4, m-3, m-2, m-1, current]).
+  const lastMonthStats = React.useMemo(() => {
+    if (!monthlyData || monthlyData.length < 2) {
+      return { income: 0, expenses: 0, balance: 0 };
+    }
+    const prev = monthlyData[monthlyData.length - 2];
+    return {
+      income: prev.income,
+      expenses: prev.expenses,
+      balance: prev.income - prev.expenses,
+    };
+  }, [monthlyData]);
+
+  // % change of current vs last month for the 4 KPI cards. Returns 0 if last month was 0
+  // (avoid Infinity). Caller can decide to show "—" instead.
+  const deltas: PeriodDeltas = React.useMemo(() => {
+    const pct = (current: number, prev: number) =>
+      prev === 0 ? 0 : ((current - prev) / Math.abs(prev)) * 100;
+    return {
+      income: pct(stats.totalIncome, lastMonthStats.income),
+      expenses: pct(stats.totalExpenses, lastMonthStats.expenses),
+      balance: pct(stats.balance, lastMonthStats.balance),
+      budgetUsed: 0, // budget % is already a "vs target" metric; no MoM delta needed
+    };
+  }, [stats, lastMonthStats]);
+
+  // Per-category month-over-month deltas, comparing current month spend in each
+  // category to its avg over the prior 3 months. Used by the insights engine to
+  // surface "Groceries up 23% vs your 3-month avg" cards.
+  const categoryDeltas: CategoryDelta[] = React.useMemo(() => {
+    if (!monthlyTransactions || monthlyTransactions.length < 4) return [];
+
+    const buckets = monthlyTransactions.map(({ transactions }) => {
+      const safe = transactions || [];
+      const byCat: Record<string, number> = {};
+      safe
+        .filter((t: Transaction) => t.type === "expense")
+        .forEach((t: Transaction) => {
+          const name = t.category?.name || "Uncategorized";
+          byCat[name] = (byCat[name] || 0) + t.amount;
+        });
+      return byCat;
+    });
+
+    const currentIdx = buckets.length - 1;
+    const currentBucket = buckets[currentIdx];
+    const priorBuckets = buckets.slice(Math.max(0, currentIdx - 3), currentIdx);
+    if (priorBuckets.length === 0) return [];
+
+    const allCats = new Set<string>([
+      ...Object.keys(currentBucket),
+      ...priorBuckets.flatMap((b) => Object.keys(b)),
+    ]);
+
+    return Array.from(allCats)
+      .map((name) => {
+        const currentMonth = currentBucket[name] || 0;
+        const priorTotal = priorBuckets.reduce((s, b) => s + (b[name] || 0), 0);
+        const threeMonthAvg = priorTotal / priorBuckets.length;
+        const percentChange =
+          threeMonthAvg === 0
+            ? currentMonth > 0
+              ? 100
+              : 0
+            : ((currentMonth - threeMonthAvg) / threeMonthAvg) * 100;
+        return { name, currentMonth, threeMonthAvg, percentChange };
+      })
+      .filter((d) => d.currentMonth > 0 || d.threeMonthAvg > 0);
+  }, [monthlyTransactions]);
+
   return {
     stats,
+    lastMonthStats,
+    deltas,
     monthlyData,
     categoryBreakdown,
+    categoryDeltas,
     isLoading: transactionsLoading || budgetLoading || monthlyLoading,
     transactions,
+    budget,
   };
 };
 
