@@ -331,35 +331,47 @@ const AdminPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-col gap-1">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium w-fit ${
-                            user.isActive
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          {user.isActive ? "Active" : "Inactive"}
-                        </span>
-                        {user.expiresAt && (() => {
-                          const days = Math.ceil(
-                            (new Date(user.expiresAt).getTime() - Date.now()) / 86400000
-                          );
-                          const expired = days < 0;
-                          const soon = !expired && days <= 7;
-                          return (
-                            <span className={`text-xs ${
-                              expired ? "text-red-600 font-medium" :
-                              soon ? "text-amber-600 font-medium" :
-                              "text-slate-500"
-                            }`}>
-                              {expired
-                                ? `Expired ${Math.abs(days)}d ago`
-                                : `${days}d left`}
+                      {(() => {
+                        const days = user.expiresAt
+                          ? Math.ceil(
+                              (new Date(user.expiresAt).getTime() - Date.now()) / 86400000
+                            )
+                          : null;
+                        const isExpired = days !== null && days < 0;
+                        // Effective status mirrors the backend's checkSubscription middleware:
+                        // a user is only "active" if isActive=true AND not past expiresAt.
+                        const effectivelyActive = user.isActive && !isExpired;
+
+                        let pill: { label: string; cls: string };
+                        if (!user.isActive) {
+                          pill = { label: "Deactivated", cls: "bg-red-100 text-red-700" };
+                        } else if (isExpired) {
+                          pill = { label: "Expired", cls: "bg-amber-100 text-amber-700" };
+                        } else {
+                          pill = { label: "Active", cls: "bg-emerald-100 text-emerald-700" };
+                        }
+
+                        return (
+                          <div className="flex flex-col gap-1">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium w-fit ${pill.cls}`}
+                            >
+                              {pill.label}
                             </span>
-                          );
-                        })()}
-                      </div>
+                            {days !== null && (
+                              <span className={`text-xs ${
+                                isExpired ? "text-red-600 font-medium" :
+                                effectivelyActive && days <= 7 ? "text-amber-600 font-medium" :
+                                "text-slate-500"
+                              }`}>
+                                {isExpired
+                                  ? `Expired ${Math.abs(days)}d ago`
+                                  : `${days}d left`}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                       {new Date(user.createdAt).toLocaleDateString()}

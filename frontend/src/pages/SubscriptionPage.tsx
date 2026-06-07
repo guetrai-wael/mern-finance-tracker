@@ -9,7 +9,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { FiClock, FiLogOut, FiMail, FiCopy, FiCheck } from "react-icons/fi";
 import { Button } from "../components/common/Button";
 
-const SUPPORT_EMAIL = "guetariwael@gmail.com";
+const SUPPORT_EMAIL = "chahrity01@gmail.com";
 
 function daysRemaining(dateStr?: string): number | null {
   if (!dateStr) return null;
