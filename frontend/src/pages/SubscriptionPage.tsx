@@ -8,22 +8,16 @@ import React from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { FiClock, FiLogOut, FiMail, FiCopy, FiCheck } from "react-icons/fi";
 import { Button } from "../components/common/Button";
+import { getSubscriptionInfo } from "../lib/subscription";
 
 const SUPPORT_EMAIL = "chahrity01@gmail.com";
-
-function daysRemaining(dateStr?: string): number | null {
-  if (!dateStr) return null;
-  const ms = new Date(dateStr).getTime() - Date.now();
-  return Math.ceil(ms / (1000 * 60 * 60 * 24));
-}
 
 const SubscriptionPage: React.FC = () => {
   const { user, logout } = useAuth();
   const [copied, setCopied] = React.useState(false);
 
-  const days = daysRemaining(user?.expiresAt);
-  const isExpired = days !== null && days < 0;
-  const isDeactivated = user?.isActive === false;
+  const info = getSubscriptionInfo(user);
+  const { daysRemaining: days, isExpired, isDeactivated } = info;
 
   // Subject line a user can copy into their email client
   const subject = encodeURIComponent(`Chahrity subscription renewal — ${user?.name || ""}`);

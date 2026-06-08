@@ -51,6 +51,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initAuth();
   }, []);
 
+  // Keep auth state fresh without forcing reloads. Two triggers:
+  //   - every 5 minutes while the tab is visible (catches admin extends/deactivations)
+  //   - on tab visibility change (catches the "I left for an hour" case)
+  // No-op when not authenticated.
+  useEffect(() => {
+    if (!user) return;
+
+    const silentRefresh = async () => {
+      try {
+        const userData = await authApi.getCurrentUser();
+        setUser(userData);
+      } catch {
+        // Don't log out on transient failures — the next refresh attempt will retry.
+      }
+    };
+
+    const POLL_MS = 5 * 60 * 1000;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") silentRefresh();
+    }, POLL_MS);
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") silentRefresh();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+    // Re-create the interval only when the authenticated user identity changes,
+    // not when arbitrary user fields change (the silentRefresh closure reads the
+    // newest user via setUser).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?._id || user?.id]);
+
   const login = async (credentials: LoginCredentials) => {
     try {
       const response = await authApi.login(credentials);

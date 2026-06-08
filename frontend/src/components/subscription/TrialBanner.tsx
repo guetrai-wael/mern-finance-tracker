@@ -7,24 +7,14 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { FiAlertCircle, FiX } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
+import { isInWarnWindow, getSubscriptionInfo } from "../../lib/subscription";
 
-const WARN_WINDOW_DAYS = 7;
 const DISMISS_KEY_PREFIX = "trial-banner-dismissed-"; // suffix is YYYY-MM-DD of expiry
-
-function daysUntil(dateStr?: string): number | null {
-  if (!dateStr) return null;
-  const ms = new Date(dateStr).getTime() - Date.now();
-  return Math.floor(ms / (1000 * 60 * 60 * 24));
-}
 
 export const TrialBanner: React.FC = () => {
   const { user } = useAuth();
-  const days = daysUntil(user?.expiresAt);
-
-  // Only show in the active warning window (1..WARN_WINDOW_DAYS days left).
-  // Hidden when: not authenticated, no expiry, more than 7 days left, or expired.
-  const shouldShow =
-    user?.isActive === true && days !== null && days >= 0 && days <= WARN_WINDOW_DAYS;
+  const days = getSubscriptionInfo(user).daysRemaining;
+  const shouldShow = isInWarnWindow(user);
 
   // Dismissal sticks to *this* expiry date so it reappears after a renewal cycle.
   const dismissKey = React.useMemo(

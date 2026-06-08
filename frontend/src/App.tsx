@@ -11,6 +11,7 @@ import { queryClient } from "./lib/queryClient";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
+import { getSubscriptionInfo } from "./lib/subscription";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import LoadingSpinner from "./components/common/LoadingSpinner";
 import DashboardLayout from "./components/layout/DashboardLayout";
@@ -32,7 +33,7 @@ const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -42,37 +43,19 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
     return <Navigate to="/login" replace />;
   }
 
-  // --- NEW SUBSCRIPTION CHECK ---
-  // If user is not active, redirect to subscription page
-  // But allow admin to bypass or if they are already on the subscription page (handled by routing)
-  const { user } = useAuth();
-  
-  // Safety check: admins bypass everything
-  if (user?.role === 'admin') {
-      return <>{children}</>;
+  // Admins bypass subscription gates entirely.
+  if (user?.role === "admin") {
+    return <>{children}</>;
   }
 
-  // Regular user check
-  const isSubscriptionPage = window.location.pathname === '/subscription';
+  // Single source of truth — see lib/subscription.ts. Backend's checkSubscription
+  // middleware is the real gate; this just controls which screen the user sees.
+  const info = getSubscriptionInfo(user);
+  const onSubscriptionPage = window.location.pathname === "/subscription";
 
-  if (user && !user.isActive) {
-      if (!isSubscriptionPage) {
-          return <Navigate to="/subscription" replace />;
-      }
-      return <>{children}</>;
+  if (!info.isEffectivelyActive && !onSubscriptionPage) {
+    return <Navigate to="/subscription" replace />;
   }
-  
-  // Expiry check (if expiresAt exists)
-  if (user?.expiresAt) {
-      const isExpired = new Date(user.expiresAt) < new Date();
-      if (isExpired) {
-          if (!isSubscriptionPage) {
-            return <Navigate to="/subscription" replace />;
-          }
-          return <>{children}</>;
-      }
-  }
-  // -----------------------------
 
   return <>{children}</>;
 };

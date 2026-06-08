@@ -3,7 +3,7 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getTransactions } from "../services/transactions";
 import { getBudget } from "../services/budgets";
-import type { Transaction } from "../types";
+import type { Transaction, Budget } from "../types";
 
 export interface DashboardStats {
   totalIncome: number;
@@ -38,6 +38,27 @@ export interface CategoryDelta {
   percentChange: number;
 }
 
+export interface UseDashboardResult {
+  /** Aggregates for the current calendar month. */
+  stats: DashboardStats;
+  /** Same shape as `stats` but for the previous calendar month. */
+  lastMonthStats: { income: number; expenses: number; balance: number };
+  /** Percent change of current vs last month for each KPI; 0 if last month was 0. */
+  deltas: PeriodDeltas;
+  /** 6 months of totals oldest → newest, used by the BarChart. */
+  monthlyData: MonthlyData[];
+  /** Top-8 expense categories for the current month. */
+  categoryBreakdown: CategoryBreakdown[];
+  /** Per-category MoM change. Used by the insights engine. Empty when <4 months of history exists. */
+  categoryDeltas: CategoryDelta[];
+  /** True while ANY of the three underlying queries is loading. */
+  isLoading: boolean;
+  /** Current month's transactions; used by "Recent Activity" and the activity-drought insight. */
+  transactions: Transaction[];
+  /** Current month's budget envelope (may be null if user hasn't set one). */
+  budget: { budget: Budget | null } | undefined;
+}
+
 // Generate colors for pie chart
 const COLORS = [
   "#3B82F6",
@@ -52,7 +73,7 @@ const COLORS = [
   "#6B7280",
 ];
 
-export const useDashboardData = () => {
+export const useDashboardData = (): UseDashboardResult => {
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
 
   // Get current month transactions

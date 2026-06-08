@@ -21,6 +21,8 @@ import {
   exportUsers,
   extendSubscription,
 } from "../services/users";
+import { getSubscriptionInfo } from "../lib/subscription";
+import { useAuth } from "../contexts/AuthContext";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import { useToast } from "../hooks/useToast";
 import { Modal } from "../components/common/Modal";
@@ -59,6 +61,7 @@ const AdminPage: React.FC = () => {
 
   const queryClient = useQueryClient();
   const { showSuccess, showError } = useToast();
+  const { user: currentAdmin, refreshUser } = useAuth();
 
   // Queries
   const { data: usersData, isLoading } = useQuery({
@@ -72,8 +75,12 @@ const AdminPage: React.FC = () => {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<User> }) =>
       updateUser(id, data),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      const adminId = currentAdmin?._id || currentAdmin?.id;
+      if (adminId && variables.id === adminId) {
+        refreshUser();
+      }
       setIsEditModalOpen(false);
       setEditingUser(null);
       reset();
@@ -157,8 +164,15 @@ const AdminPage: React.FC = () => {
   const extendMutation = useMutation({
     mutationFn: ({ id, days }: { id: string; days: number }) =>
       extendSubscription(id, days),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      // If the admin just extended their own account, refresh the auth
+      // context so the new expiry is reflected in TrialBanner + ProtectedRoute
+      // without forcing a hard reload.
+      const adminId = currentAdmin?._id || currentAdmin?.id;
+      if (adminId && variables.id === adminId) {
+        refreshUser();
+      }
       setExtendUser(null);
       setExtendDays(30);
       showSuccess("Subscription extended");
@@ -332,24 +346,17 @@ const AdminPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {(() => {
-                        const days = user.expiresAt
-                          ? Math.ceil(
-                              (new Date(user.expiresAt).getTime() - Date.now()) / 86400000
-                            )
-                          : null;
-                        const isExpired = days !== null && days < 0;
-                        // Effective status mirrors the backend's checkSubscription middleware:
-                        // a user is only "active" if isActive=true AND not past expiresAt.
-                        const effectivelyActive = user.isActive && !isExpired;
+                        // Shared with App.tsx, TrialBanner, SubscriptionPage —
+                        // see lib/subscription.ts. Never re-implement this rule.
+                        const info = getSubscriptionInfo(user);
+                        const { status, daysRemaining: days, isEffectivelyActive } = info;
 
-                        let pill: { label: string; cls: string };
-                        if (!user.isActive) {
-                          pill = { label: "Deactivated", cls: "bg-red-100 text-red-700" };
-                        } else if (isExpired) {
-                          pill = { label: "Expired", cls: "bg-amber-100 text-amber-700" };
-                        } else {
-                          pill = { label: "Active", cls: "bg-emerald-100 text-emerald-700" };
-                        }
+                        const pill =
+                          status === "deactivated"
+                            ? { label: "Deactivated", cls: "bg-red-100 text-red-700" }
+                            : status === "expired"
+                            ? { label: "Expired", cls: "bg-amber-100 text-amber-700" }
+                            : { label: "Active", cls: "bg-emerald-100 text-emerald-700" };
 
                         return (
                           <div className="flex flex-col gap-1">
@@ -360,11 +367,11 @@ const AdminPage: React.FC = () => {
                             </span>
                             {days !== null && (
                               <span className={`text-xs ${
-                                isExpired ? "text-red-600 font-medium" :
-                                effectivelyActive && days <= 7 ? "text-amber-600 font-medium" :
+                                info.isExpired ? "text-red-600 font-medium" :
+                                isEffectivelyActive && days <= 7 ? "text-amber-600 font-medium" :
                                 "text-slate-500"
                               }`}>
-                                {isExpired
+                                {info.isExpired
                                   ? `Expired ${Math.abs(days)}d ago`
                                   : `${days}d left`}
                               </span>
