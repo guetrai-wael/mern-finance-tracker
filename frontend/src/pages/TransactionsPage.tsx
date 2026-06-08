@@ -214,13 +214,14 @@ const TransactionsPage: React.FC = () => {
             Track and manage your income and expenses
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Button
             variant="secondary"
             onClick={handleExport}
             isLoading={isExporting}
             disabled={exportDisabled}
             icon={<FiDownload className="w-4 h-4" />}
+            className="w-full sm:w-auto justify-center"
             title={
               transactions.length === 0
                 ? "No transactions to export"
@@ -231,7 +232,11 @@ const TransactionsPage: React.FC = () => {
           >
             Export CSV
           </Button>
-          <Button onClick={openModal} icon={<FiPlus className="w-4 h-4" />}>
+          <Button
+            onClick={openModal}
+            icon={<FiPlus className="w-4 h-4" />}
+            className="w-full sm:w-auto justify-center"
+          >
             Add Transaction
           </Button>
         </div>
@@ -328,7 +333,11 @@ const TransactionsPage: React.FC = () => {
                         <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3">
                             <FiSearch className="h-6 w-6 text-slate-400" />
                         </div>
-                        <p>No transactions found matching your filters.</p>
+                        <p>
+                          {hasFiltersApplied
+                            ? "No transactions match these filters."
+                            : "No transactions yet — add your first one above."}
+                        </p>
                     </div>
                   </td>
                 </tr>
@@ -396,7 +405,14 @@ const TransactionsPage: React.FC = () => {
           <div className="md:hidden divide-y divide-slate-100">
             {transactions.length === 0 ? (
                <div className="p-8 text-center text-slate-500">
-                    <p>No transactions found.</p>
+                    <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3 mx-auto">
+                        <FiSearch className="h-6 w-6 text-slate-400" />
+                    </div>
+                    <p>
+                      {hasFiltersApplied
+                        ? "No transactions match these filters."
+                        : "No transactions yet — add your first one above."}
+                    </p>
                </div>
             ) : (
               transactions.map((transaction) => (

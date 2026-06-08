@@ -289,7 +289,8 @@ const AdminPage: React.FC = () => {
           <p className="text-sm text-slate-500">Total users: {users.length}</p>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop: table view */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-100">
             <thead className="bg-slate-50/50">
               <tr>
@@ -439,6 +440,111 @@ const AdminPage: React.FC = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile: card view */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {users.length === 0 ? (
+            <div className="p-8 text-center text-slate-500">
+              <p>No users found.</p>
+            </div>
+          ) : (
+            users.map((user) => {
+              const info = getSubscriptionInfo(user);
+              const { status, daysRemaining: days, isEffectivelyActive } = info;
+              const pill =
+                status === "deactivated"
+                  ? { label: "Deactivated", cls: "bg-red-100 text-red-700" }
+                  : status === "expired"
+                  ? { label: "Expired", cls: "bg-amber-100 text-amber-700" }
+                  : { label: "Active", cls: "bg-emerald-100 text-emerald-700" };
+
+              return (
+                <div key={user._id || user.id} className="p-4">
+                  {/* Header: name + role */}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-slate-900 truncate">{user.name}</p>
+                      <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                    </div>
+                    <span
+                      className={`flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        user.role === "admin"
+                          ? "bg-purple-100 text-purple-700"
+                          : "bg-slate-100 text-slate-700"
+                      }`}
+                    >
+                      {user.role}
+                    </span>
+                  </div>
+
+                  {/* Status pill + days remaining + joined date */}
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${pill.cls}`}>
+                      {pill.label}
+                    </span>
+                    {days !== null && (
+                      <span className={`text-xs ${
+                        info.isExpired ? "text-red-600 font-medium" :
+                        isEffectivelyActive && days <= 7 ? "text-amber-600 font-medium" :
+                        "text-slate-500"
+                      }`}>
+                        {info.isExpired ? `Expired ${Math.abs(days)}d ago` : `${days}d left`}
+                      </span>
+                    )}
+                    <span className="text-xs text-slate-400 ml-auto">
+                      Joined {new Date(user.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  {/* Actions: 5 labeled buttons, 44px+ tap targets */}
+                  <div className="grid grid-cols-5 gap-1">
+                    <button
+                      onClick={() => toggleUserStatus(user)}
+                      disabled={updateMutation.isPending}
+                      className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg text-xs font-medium transition-colors ${
+                        user.isActive
+                          ? "text-red-600 bg-red-50 hover:bg-red-100"
+                          : "text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
+                      }`}
+                    >
+                      {user.isActive ? <FiUserX className="h-4 w-4" /> : <FiUserCheck className="h-4 w-4" />}
+                      <span>{user.isActive ? "Deact." : "Activate"}</span>
+                    </button>
+                    <button
+                      onClick={() => handleEdit(user)}
+                      className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100"
+                    >
+                      <FiEdit className="h-4 w-4" />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      onClick={() => { setExtendUser(user); setExtendDays(30); }}
+                      className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg text-xs font-medium text-primary-600 bg-primary-50 hover:bg-primary-100"
+                    >
+                      <FiClock className="h-4 w-4" />
+                      <span>Extend</span>
+                    </button>
+                    <button
+                      onClick={() => handleResetPassword(user)}
+                      className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg text-xs font-medium text-amber-600 bg-amber-50 hover:bg-amber-100"
+                    >
+                      <FiKey className="h-4 w-4" />
+                      <span>Reset</span>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(user)}
+                      disabled={deleteMutation.isPending}
+                      className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100"
+                    >
+                      <FiTrash2 className="h-4 w-4" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </Card>
 
