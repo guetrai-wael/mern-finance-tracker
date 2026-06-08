@@ -1,6 +1,7 @@
 /* Export controller: CSV/JSON export of user data for admins */
 const fs = require('fs');
 const path = require('path');
+const { randomUUID } = require('crypto');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const User = require('../models/user.model');
 const logger = require('../utils/logger');
@@ -9,7 +10,9 @@ async function exportUsers(req, res, next) {
     try {
         const format = req.query.format || 'json';
         const users = await User.find().select('-password -refreshToken');
-        const filename = `users_export_${Date.now()}`;
+        // UUID-suffixed filename avoids tmp-file races when two exports land
+        // in the same millisecond (rare with one admin, real with many tabs/users).
+        const filename = `users_export_${Date.now()}_${randomUUID()}`;
 
         if (format === 'csv') {
             const filepath = path.join(__dirname, '../tmp', `${filename}.csv`);
@@ -74,7 +77,7 @@ async function exportTransactions(req, res, next) {
             .populate('category', 'name')
             .sort({ date: -1 });
 
-        const filename = `transactions_export_${Date.now()}`;
+        const filename = `transactions_export_${Date.now()}_${randomUUID()}`;
 
         if (format === 'csv') {
             const filepath = path.join(__dirname, '../tmp', `${filename}.csv`);

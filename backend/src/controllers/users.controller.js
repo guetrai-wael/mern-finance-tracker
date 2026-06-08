@@ -58,32 +58,56 @@ const extendSubscription = asyncHandler(async (req, res) => {
     const userId = req.params.id;
     const { days } = req.body;
 
-    const user = await User.findById(userId);
-    if (!user) return error(res, 'User not found', 404);
+    // Race-safe: read the current expiresAt, compute the new one, then
+    // findOneAndUpdate with a predicate on the observed expiresAt. If two
+    // admins extend the same user simultaneously, the second write's predicate
+    // misses and we retry with the latest value — never silently overwriting.
+    const MAX_ATTEMPTS = 3;
+    let updated = null;
 
-    const now = new Date();
-    // If currently expired or never set, extend from now. If still in the future,
-    // stack the extension onto the existing expiry so paying early doesn't lose days.
-    const base = (user.expiresAt && user.expiresAt > now) ? user.expiresAt : now;
-    const newExpiry = new Date(base);
-    newExpiry.setDate(newExpiry.getDate() + days);
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        const user = await User.findById(userId);
+        if (!user) return error(res, 'User not found', 404);
 
-    user.isActive = true;
-    user.expiresAt = newExpiry;
-    if (!user.activatedAt) user.activatedAt = now;
-    await user.save();
+        const now = new Date();
+        const base = (user.expiresAt && user.expiresAt > now) ? user.expiresAt : now;
+        const newExpiry = new Date(base);
+        newExpiry.setDate(newExpiry.getDate() + days);
 
-    const safe = user.toObject();
-    delete safe.password;
-    delete safe.refreshToken;
+        // Predicate matches a specific observed state: this expiresAt value (or
+        // null/missing) on a doc whose _id we already verified. If a concurrent
+        // request mutated expiresAt between our read and our write, the predicate
+        // fails and we loop.
+        updated = await User.findOneAndUpdate(
+            {
+                _id: userId,
+                expiresAt: user.expiresAt ?? null
+            },
+            {
+                $set: {
+                    isActive: true,
+                    expiresAt: newExpiry,
+                    ...(user.activatedAt ? {} : { activatedAt: now })
+                }
+            },
+            { new: true }
+        ).select('-password -refreshToken');
+
+        if (updated) break;
+    }
+
+    if (!updated) {
+        logger.warn('extendSubscription gave up after retries', { targetUserId: userId, adminId: req.user._id });
+        return error(res, 'Could not extend subscription — please retry', 409);
+    }
 
     logger.info('User subscription extended by admin', {
         targetUserId: userId,
         days,
-        newExpiresAt: newExpiry,
+        newExpiresAt: updated.expiresAt,
         adminId: req.user._id
     });
-    return success(res, safe, `Subscription extended by ${days} days`);
+    return success(res, updated, `Subscription extended by ${days} days`);
 });
 
 const deactivateUser = asyncHandler(async (req, res) => {

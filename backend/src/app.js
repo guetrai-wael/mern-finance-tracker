@@ -102,14 +102,22 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: function (origin, callback) {
-        // allow server-to-server / curl / postman
-        if (!origin) return callback(null, true);
+        // In dev, allow no-origin requests (curl, Postman, server-to-server tests).
+        // In production, requests without an Origin header are usually server-side
+        // and have no business calling a credentialed API — reject them.
+        if (!origin) {
+            return callback(null, process.env.NODE_ENV !== 'production');
+        }
 
         if (allowedOrigins.includes(origin)) {
             return callback(null, true);
         }
 
-        return callback(new Error("CORS policy: Not allowed"), false);
+        // Reject by returning false (not throwing). Throwing turns every blocked
+        // request into a stack-trace logged at error level — easy log-spam vector.
+        // false yields a clean 200/204 with no Access-Control-Allow-Origin header,
+        // which the browser correctly blocks.
+        return callback(null, false);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
