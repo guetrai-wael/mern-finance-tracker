@@ -24,11 +24,12 @@ router.delete('/profile', settingsCtrl.deleteAccount);
 router.use(admin);
 router.get('/', ctrl.listUsers);
 router.get('/:id', validateParams(paramSchemas.id), ctrl.getUser);
-/* 
-    TODO: Add validation for update
-    Currently paramSchemas.id is valid but userSchemas.update might need review if it doesn't exist 
-*/
-router.put('/:id', validateParams(paramSchemas.id), ctrl.updateUser);
+router.put(
+    '/:id',
+    validateParams(paramSchemas.id),
+    validateBody(userSchemas.update),
+    ctrl.updateUser
+);
 
 router.post('/:id/activate', validateParams(paramSchemas.id), ctrl.activateUser);
 router.post('/:id/deactivate', validateParams(paramSchemas.id), ctrl.deactivateUser);

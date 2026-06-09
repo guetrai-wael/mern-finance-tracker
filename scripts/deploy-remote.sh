@@ -44,6 +44,11 @@ fi
 
 blue "==> Step 3/6: Install dependencies (backend)"
 cd "$APP_DIR/backend"
+# NOTE: package-lock.json is currently .gitignored, so the server resolves
+# versions independently from package.json caret ranges. That means we use
+# `npm install`. If you ever stop gitignoring the lockfile, swap to `npm ci`
+# for stricter reproducibility (it refuses to mutate the lockfile and fails
+# fast if it drifts from package.json).
 npm install --no-audit --no-fund || fail "npm install failed."
 green "    Dependencies installed."
 
