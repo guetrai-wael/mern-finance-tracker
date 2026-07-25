@@ -44,12 +44,11 @@ fi
 
 blue "==> Step 3/6: Install dependencies (backend)"
 cd "$APP_DIR/backend"
-# NOTE: package-lock.json is currently .gitignored, so the server resolves
-# versions independently from package.json caret ranges. That means we use
-# `npm install`. If you ever stop gitignoring the lockfile, swap to `npm ci`
-# for stricter reproducibility (it refuses to mutate the lockfile and fails
-# fast if it drifts from package.json).
-npm install --no-audit --no-fund || fail "npm install failed."
+# package-lock.json is committed, so install the exact reviewed versions rather
+# than re-resolving package.json caret ranges on every deploy. `npm ci` refuses
+# to mutate the lockfile and fails fast if it has drifted from package.json —
+# which is what makes an `npm audit` run on your laptop mean anything in prod.
+npm ci --no-audit --no-fund || fail "npm ci failed. If it reports lockfile drift, run 'npm install' locally and commit the updated package-lock.json."
 green "    Dependencies installed."
 
 blue "==> Step 4/6: Boot smoke test"

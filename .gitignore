@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
-package-lock.json
+
+# NOTE: package-lock.json is intentionally NOT ignored. Committing the lock file
+# is what makes installs reproducible and `npm audit` results meaningful —
+# without it, every deploy re-resolves transitive dependencies and can silently
+# pull in a version that was never reviewed.
 yarn.lock
 pnpm-lock.yaml
 
