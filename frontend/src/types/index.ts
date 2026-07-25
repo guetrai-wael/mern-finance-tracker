@@ -42,8 +42,52 @@ export interface Transaction {
   type: "income" | "expense";
   date: string;
   description?: string;
+  /** Where this entry came from. Automated entries are tagged in the UI. */
+  source?: "manual" | "recurring" | "goal";
+  /** Set when source is "recurring" — enables bulk-undo of a rule. */
+  recurringId?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export type RecurrenceFrequency =
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "quarterly"
+  | "yearly";
+
+export interface RecurringTransaction {
+  _id: string;
+  user: string;
+  name: string;
+  amount: number;
+  category?: Category;
+  type: "income" | "expense";
+  frequency: RecurrenceFrequency;
+  startDate: string;
+  endDate?: string;
+  dayOfWeek?: number;
+  dayOfMonth?: number;
+  isActive: boolean;
+  lastProcessed?: string;
+  nextDue: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RecurringInput {
+  name: string;
+  amount: number;
+  category?: string;
+  type: "income" | "expense";
+  frequency: RecurrenceFrequency;
+  startDate: string;
+  endDate?: string;
+  dayOfMonth?: number;
+  isActive?: boolean;
+  description?: string;
 }
 
 export interface Budget {

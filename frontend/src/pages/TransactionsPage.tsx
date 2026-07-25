@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { FiEdit, FiTrash2, FiPlus, FiFilter, FiSearch, FiArrowUp, FiArrowDown, FiDownload } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiPlus, FiFilter, FiSearch, FiArrowUp, FiArrowDown, FiDownload, FiRepeat } from "react-icons/fi";
 import {
   getTransactions,
   createTransaction,
@@ -348,7 +348,17 @@ const TransactionsPage: React.FC = () => {
                       {new Date(transaction.date).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-slate-900">
-                      {transaction.description || "No description"}
+                      <span className="inline-flex items-center gap-1.5">
+                        {transaction.description || "No description"}
+                        {transaction.source === "recurring" && (
+                          <span
+                            title="Created automatically by a recurring rule"
+                            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700"
+                          >
+                            <FiRepeat className="w-3 h-3" />
+                          </span>
+                        )}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">

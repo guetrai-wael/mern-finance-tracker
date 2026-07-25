@@ -15,7 +15,8 @@ import {
   FiX,
   FiUser,
   FiPieChart,
-  FiBarChart2
+  FiBarChart2,
+  FiRepeat
 } from "react-icons/fi";
 
 interface DashboardLayoutProps {
@@ -36,6 +37,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     { name: "Categories", href: "/categories", icon: FiTag },
     { name: "Budgets", href: "/budgets", icon: FiTarget },
     { name: "Goals", href: "/goals", icon: FiTrendingUp },
+    { name: "Recurring", href: "/recurring", icon: FiRepeat },
     { name: "Reports", href: "/reports", icon: FiBarChart2 },
     { name: "Settings", href: "/settings", icon: FiUser },
     ...(isAdmin ? [{ name: "Admin", href: "/admin", icon: FiUsers }] : []),
