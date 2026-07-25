@@ -308,6 +308,22 @@ const recurringSchemas = {
 
 // User schemas
 const userSchemas = {
+    updateSettings: Joi.object({
+        country: Joi.string().length(2).optional(),
+        currency: Joi.string().length(3).optional(),
+        dateFormat: Joi.string().valid('MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD').optional(),
+        numberFormat: Joi.string().valid('1,234.56', '1.234,56', '1 234,56').optional(),
+        theme: Joi.string().valid('light', 'dark', 'auto').optional(),
+        notifications: Joi.object({
+            email: Joi.boolean().optional(),
+            budgetAlerts: Joi.boolean().optional(),
+            goalReminders: Joi.boolean().optional(),
+            monthlyReports: Joi.boolean().optional()
+        }).optional()
+    }).min(1).required().messages({
+        'object.min': 'At least one setting must be provided for update'
+    }),
+
     update: Joi.object({
         name: commonSchemas.name.optional(),
         email: Joi.string().email().optional().messages({

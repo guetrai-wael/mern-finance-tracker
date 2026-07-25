@@ -17,7 +17,7 @@ router.get('/profile', settingsCtrl.getProfile);
 router.put('/profile', validateBody(authSchemas.updateProfile), settingsCtrl.updateProfile);
 router.put('/change-password', validateBody(authSchemas.changePassword), settingsCtrl.changePassword);
 router.get('/settings', settingsCtrl.getUserSettings);
-router.put('/settings', settingsCtrl.updateUserSettings);
+router.put('/settings', validateBody(userSchemas.updateSettings), settingsCtrl.updateUserSettings);
 router.delete('/profile', settingsCtrl.deleteAccount);
 
 // Admin-only routes

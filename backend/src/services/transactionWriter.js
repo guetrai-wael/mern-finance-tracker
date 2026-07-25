@@ -11,6 +11,7 @@
  */
 const Transaction = require('../models/transaction.model');
 const { checkBudgets } = require('./budgetCheck');
+const { dispatchBudgetEvents } = require('./notifications');
 
 /**
  * Create a transaction and run every side effect that must accompany it.
@@ -43,6 +44,12 @@ async function createTransaction(input) {
     // Budget evaluation must never fail the write — checkBudgets swallows its
     // own errors and returns an empty list.
     const budgetEvents = await checkBudgets(user, transaction);
+
+    // Dedupe lives in the dispatcher, so repeatedly crossing the same threshold
+    // in the same month produces one notification, not one per transaction.
+    if (budgetEvents.length > 0) {
+        await dispatchBudgetEvents(user, budgetEvents);
+    }
 
     return { transaction, budgetEvents };
 }

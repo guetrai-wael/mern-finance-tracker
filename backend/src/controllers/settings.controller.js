@@ -82,18 +82,44 @@ const getUserSettings = asyncHandler(async (req, res) => {
     return success(res, settings, 'Settings retrieved successfully');
 });
 
+const SCALAR_SETTINGS = ['country', 'currency', 'dateFormat', 'numberFormat', 'theme'];
+
+/**
+ * Flatten a settings payload into dotted $set paths.
+ *
+ * Dotted paths matter for notifications specifically: $set on
+ * 'settings.notifications' as a whole object would erase whichever toggles the
+ * client did not send, so flipping one switch would silently reset the other
+ * three. Writing 'settings.notifications.budgetAlerts' leaves its siblings alone.
+ */
+const buildSettingsUpdate = (body) => {
+    const update = {};
+
+    for (const key of SCALAR_SETTINGS) {
+        if (body[key] !== undefined) update[`settings.${key}`] = body[key];
+    }
+
+    if (body.notifications) {
+        for (const [key, value] of Object.entries(body.notifications)) {
+            if (value !== undefined) update[`settings.notifications.${key}`] = value;
+        }
+    }
+
+    return update;
+};
+
 // Update user settings
 const updateUserSettings = asyncHandler(async (req, res) => {
-    const { currency } = req.body;
     const userId = req.user.id;
+    const update = buildSettingsUpdate(req.body);
+
+    if (Object.keys(update).length === 0) {
+        return error(res, 'No valid settings provided', 400);
+    }
 
     const user = await User.findByIdAndUpdate(
         userId,
-        {
-            $set: {
-                'settings.currency': currency
-            }
-        },
+        { $set: update },
         { new: true, runValidators: true }
     ).select('settings');
 
@@ -101,7 +127,7 @@ const updateUserSettings = asyncHandler(async (req, res) => {
         return error(res, 'User not found', 404);
     }
 
-    logger.info('Settings updated', { userId, currency });
+    logger.info('Settings updated', { userId, fields: Object.keys(update) });
     return success(res, user.settings, 'Settings updated successfully');
 });
 

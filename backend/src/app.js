@@ -33,6 +33,7 @@ const categoryRoutes = require('./routes/categories');
 const exportRoutes = require('./routes/export');
 const goalsRoutes = require('./routes/goals');
 const recurringRoutes = require('./routes/recurring');
+const notificationRoutes = require('./routes/notifications');
 const { errorHandler } = require('./middlewares/error');
 
 const app = express();
@@ -202,6 +203,7 @@ app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/export', exportRoutes);
 app.use('/api/v1/goals', goalsRoutes);
 app.use('/api/v1/recurring', recurringRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/metrics', metricsRoutes);
 
 // Enhanced error logging before error handler
