@@ -15,10 +15,13 @@ const recurringTransactionSchema = new mongoose.Schema({
     isActive: { type: Boolean, default: true },
     lastProcessed: { type: Date },
     nextDue: { type: Date, required: true },
-    description: { type: String }
+    description: { type: String },
+    // Reserved for multi-account support; the writer resolves a default when unset.
+    account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' }
 }, { timestamps: true });
 
 // Index for finding due transactions
 recurringTransactionSchema.index({ nextDue: 1, isActive: 1 });
+recurringTransactionSchema.index({ user: 1, isActive: 1 }); // User's rules list
 
 module.exports = mongoose.model('RecurringTransaction', recurringTransactionSchema);

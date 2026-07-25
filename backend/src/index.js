@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const app = require('./app');
 const config = require('./config');
 const logger = require('./utils/logger');
+const { registerJobs, scheduler } = require('./jobs');
 
 const PORT = config.port;
 
@@ -17,6 +18,13 @@ mongoose.connect(process.env.MONGO_URI)
         app.listen(PORT, '0.0.0.0', () => {
             logger.info('Server started successfully', { port: PORT, host: '0.0.0.0', environment: config.nodeEnv });
             console.log(`🚀 Server running on http://localhost:${PORT}`);
+
+            // Background jobs run in-process. Skipped under test so the suite
+            // never spawns timers or posts transactions behind a test's back.
+            if (config.nodeEnv !== 'test') {
+                registerJobs();
+                scheduler.start();
+            }
         }).on('error', (err) => {
             logger.error('Failed to start server', { error: err.message, port: PORT });
             console.error('❌ Server failed to start:', err.message);

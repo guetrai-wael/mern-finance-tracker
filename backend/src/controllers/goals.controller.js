@@ -1,8 +1,8 @@
 /* Goals controller: financial goals and savings tracking */
 const Goal = require('../models/goal.model');
-const Transaction = require('../models/transaction.model');
 const asyncHandler = require('../utils/asyncHandler');
 const { success, successList, created, error } = require('../utils/response');
+const transactionWriter = require('../services/transactionWriter');
 
 const listGoals = asyncHandler(async (req, res) => {
     const goals = await Goal.find({ user: req.user._id }).sort({ priority: -1, targetDate: 1 });
@@ -49,16 +49,18 @@ const addContribution = asyncHandler(async (req, res) => {
     }
     
     await goal.save();
-    
-    // Create a transaction for this contribution
-    await Transaction.create({
+
+    // Routed through transactionWriter so the contribution counts toward the
+    // user's budget. A direct Transaction.create here used to skip that check.
+    await transactionWriter.createTransaction({
         user: req.user._id,
-        amount: amount,
+        amount,
         type: 'expense',
         description: description || `Contribution to ${goal.name}`,
-        date: new Date()
+        date: new Date(),
+        source: 'goal'
     });
-    
+
     return success(res, goal, 'Contribution added successfully');
 });
 

@@ -251,6 +251,61 @@ const goalSchemas = {
     }).required()
 };
 
+// Recurring transaction schemas
+const FREQUENCIES = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly'];
+
+const recurringSchemas = {
+    create: Joi.object({
+        name: Joi.string().trim().min(2).max(100).required().messages({
+            'string.min': 'Name must be at least 2 characters long',
+            'string.max': 'Name must not exceed 100 characters'
+        }),
+        amount: commonSchemas.amount,
+        type: Joi.string().valid('income', 'expense').required().messages({
+            'any.only': 'Type must be either "income" or "expense"'
+        }),
+        category: commonSchemas.optionalObjectId,
+        frequency: Joi.string().valid(...FREQUENCIES).required().messages({
+            'any.only': `Frequency must be one of: ${FREQUENCIES.join(', ')}`
+        }),
+        startDate: commonSchemas.date,
+        endDate: commonSchemas.optionalDate,
+        dayOfWeek: Joi.number().integer().min(0).max(6).optional().messages({
+            'number.min': 'Day of week must be between 0 (Sunday) and 6 (Saturday)',
+            'number.max': 'Day of week must be between 0 (Sunday) and 6 (Saturday)'
+        }),
+        dayOfMonth: Joi.number().integer().min(1).max(31).optional().messages({
+            'number.min': 'Day of month must be between 1 and 31',
+            'number.max': 'Day of month must be between 1 and 31'
+        }),
+        isActive: Joi.boolean().optional().default(true),
+        description: commonSchemas.description
+    }).required(),
+
+    update: Joi.object({
+        name: Joi.string().trim().min(2).max(100).optional().messages({
+            'string.min': 'Name must be at least 2 characters long',
+            'string.max': 'Name must not exceed 100 characters'
+        }),
+        amount: commonSchemas.optionalAmount,
+        type: Joi.string().valid('income', 'expense').optional().messages({
+            'any.only': 'Type must be either "income" or "expense"'
+        }),
+        category: commonSchemas.optionalObjectId,
+        frequency: Joi.string().valid(...FREQUENCIES).optional().messages({
+            'any.only': `Frequency must be one of: ${FREQUENCIES.join(', ')}`
+        }),
+        startDate: commonSchemas.optionalDate,
+        endDate: commonSchemas.optionalDate,
+        dayOfWeek: Joi.number().integer().min(0).max(6).optional(),
+        dayOfMonth: Joi.number().integer().min(1).max(31).optional(),
+        isActive: Joi.boolean().optional(),
+        description: commonSchemas.description
+    }).min(1).required().messages({
+        'object.min': 'At least one field must be provided for update'
+    })
+};
+
 // User schemas
 const userSchemas = {
     update: Joi.object({
@@ -313,6 +368,7 @@ module.exports = {
     categorySchemas,
     budgetSchemas,
     goalSchemas,
+    recurringSchemas,
     userSchemas,
     paramSchemas,
     querySchemas,
