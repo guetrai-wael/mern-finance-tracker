@@ -20,8 +20,7 @@ const getMetrics = async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: 'Failed to retrieve performance metrics',
-            error: error.message
+            message: 'Failed to retrieve performance metrics'
         });
     }
 };
@@ -64,8 +63,7 @@ const getMetricsSummary = async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: 'Failed to retrieve performance summary',
-            error: error.message
+            message: 'Failed to retrieve performance summary'
         });
     }
 };
@@ -91,8 +89,7 @@ const getEndpointStats = async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: 'Failed to retrieve endpoint statistics',
-            error: error.message
+            message: 'Failed to retrieve endpoint statistics'
         });
     }
 };
@@ -124,8 +121,7 @@ const getDatabaseStats = async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: 'Failed to retrieve database statistics',
-            error: error.message
+            message: 'Failed to retrieve database statistics'
         });
     }
 };
@@ -215,8 +211,7 @@ const healthCheck = async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: 'Health check failed',
-            error: error.message
+            message: 'Health check failed'
         });
     }
 };

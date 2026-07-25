@@ -209,17 +209,26 @@ const updateProfile = asyncHandler(async (req, res) => {
     const { name, email } = req.body;
     const userId = req.user._id;
 
-    // Check if email is already taken by another user
-    if (email && email !== req.user.email) {
-        const existingUser = await User.findOne({ email, _id: { $ne: userId } });
-        if (existingUser) {
-            return error(res, 'Email already in use', 400);
-        }
-    }
-
     const updateData = {};
     if (name) updateData.name = name;
-    if (email) updateData.email = email;
+
+    if (email) {
+        // Normalize before comparing or storing. Signup and login both look up
+        // by normalized email, so storing a raw mixed-case value here would let
+        // "User@x.com" and "user@x.com" diverge into distinct accounts.
+        const normalizedEmail = normalizeEmail(email);
+
+        if (normalizedEmail !== req.user.email) {
+            const existingUser = await User.findOne({
+                email: new RegExp(`^${escapeRegex(normalizedEmail)}$`, 'i'),
+                _id: { $ne: userId }
+            });
+            if (existingUser) {
+                return error(res, 'Email already in use', 400);
+            }
+            updateData.email = normalizedEmail;
+        }
+    }
 
     const user = await User.findByIdAndUpdate(
         userId,
@@ -235,23 +244,42 @@ const changePassword = asyncHandler(async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     const userId = req.user._id;
 
+    // Strength is enforced by authSchemas.changePassword (commonSchemas.strongPassword)
+    // on the route. Only presence is re-checked here.
     if (!currentPassword || !newPassword) {
         return error(res, 'Current password and new password are required', 400);
-    }
-
-    if (newPassword.length < 6) {
-        return error(res, 'New password must be at least 6 characters long', 400);
     }
 
     const user = await User.findById(userId);
     const isValidPassword = await comparePassword(currentPassword, user.password);
 
     if (!isValidPassword) {
+        const contextLogger = req.logger || enhancedLogger;
+        contextLogger.security('failed_password_change', {
+            userId,
+            reason: 'incorrect_current_password',
+            ip: req.ip,
+            userAgent: req.get('User-Agent')
+        });
         return error(res, 'Current password is incorrect', 400);
     }
 
     const hashedPassword = await hashPassword(newPassword);
-    await User.findByIdAndUpdate(userId, { password: hashedPassword });
+
+    // Rotate the refresh token. refreshToken is a single field, so writing a new
+    // one invalidates every previously issued token — a password change is meant
+    // to evict an attacker, and leaving their session alive would defeat it.
+    // The caller gets fresh cookies so their own session survives.
+    const access = signAccess({ sub: user._id, role: user.role });
+    const refresh = signRefresh({ sub: user._id });
+
+    await User.findByIdAndUpdate(userId, {
+        password: hashedPassword,
+        refreshToken: refresh
+    });
+
+    res.cookie('accessToken', access, getCookieOptions());
+    res.cookie('refreshToken', refresh, getRefreshCookieOptions());
 
     logger.info(`Password changed for user: ${user.email}`);
     return successMessage(res, 'Password updated successfully');

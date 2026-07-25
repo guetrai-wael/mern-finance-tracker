@@ -55,13 +55,17 @@ const createValidationMiddleware = (schema, target = 'body') => {
                 userAgent: req.get('User-Agent')
             });
             
+            // Count this against the IP so repeated malformed requests trip
+            // checkValidationRateLimit on routes that mount it.
+            recordValidationFailure(req);
+
             // Format validation errors for response
             const validationErrors = error.details.map(detail => ({
                 field: detail.path.join('.'),
                 message: detail.message,
                 value: detail.context?.value
             }));
-            
+
             return res.status(400).json({
                 success: false,
                 message: 'Validation failed',
@@ -277,26 +281,48 @@ const sanitizeInput = (req, res, next) => {
  */
 const validationRateLimit = new Map();
 
+const VALIDATION_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const MAX_VALIDATION_FAILURES = 50; // Max failures per IP per window
+
+/**
+ * Record a validation failure against the requesting IP.
+ *
+ * Must be called on every rejected request — checkValidationRateLimit only
+ * reads this counter, so without it the gate below can never trip.
+ */
+const recordValidationFailure = (req) => {
+    const key = req.ip;
+    const now = Date.now();
+    const record = validationRateLimit.get(key);
+
+    if (!record || now > record.resetTime) {
+        validationRateLimit.set(key, { count: 1, resetTime: now + VALIDATION_WINDOW_MS });
+        return;
+    }
+
+    record.count += 1;
+};
+
 const checkValidationRateLimit = (req, res, next) => {
     const key = req.ip;
     const now = Date.now();
-    const windowMs = 5 * 60 * 1000; // 5 minutes
-    const maxFailures = 50; // Max 50 validation failures per 5 minutes
-    
+    const windowMs = VALIDATION_WINDOW_MS;
+    const maxFailures = MAX_VALIDATION_FAILURES;
+
     if (!validationRateLimit.has(key)) {
         validationRateLimit.set(key, { count: 0, resetTime: now + windowMs });
         return next();
     }
-    
+
     const record = validationRateLimit.get(key);
-    
+
     if (now > record.resetTime) {
         // Reset window
         record.count = 0;
         record.resetTime = now + windowMs;
         return next();
     }
-    
+
     if (record.count >= maxFailures) {
         const contextLogger = req.logger || enhancedLogger;
         contextLogger.security('validation_rate_limit_exceeded', {
@@ -317,8 +343,9 @@ const checkValidationRateLimit = (req, res, next) => {
     next();
 };
 
-// Clean up old rate limit records every 10 minutes
-setInterval(() => {
+// Clean up old rate limit records every 10 minutes.
+// unref() so this timer never holds the event loop open on shutdown.
+const validationRateLimitCleanup = setInterval(() => {
     const now = Date.now();
     for (const [key, record] of validationRateLimit.entries()) {
         if (now > record.resetTime) {
@@ -326,6 +353,7 @@ setInterval(() => {
         }
     }
 }, 10 * 60 * 1000);
+validationRateLimitCleanup.unref();
 
 module.exports = {
     validateBody,
@@ -336,5 +364,6 @@ module.exports = {
     validateConditional,
     sanitizeInput,
     checkValidationRateLimit,
+    recordValidationFailure,
     createValidationMiddleware
 };
