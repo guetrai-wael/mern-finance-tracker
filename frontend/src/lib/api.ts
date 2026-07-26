@@ -74,6 +74,19 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // The backend's checkSubscription middleware returns this once a trial or
+    // subscription lapses. Without handling it here, a session that expires
+    // mid-use just produces error toasts on every request with no way forward.
+    // ProtectedRoute only re-checks on navigation, so it cannot catch this.
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.errorType === "SUBSCRIPTION_REQUIRED" &&
+      !window.location.pathname.includes("/subscription")
+    ) {
+      window.location.href = "/subscription";
+      return Promise.reject(error);
+    }
+
     // Don't retry refresh requests or if already retried
     if (
       error.response?.status === 401 &&

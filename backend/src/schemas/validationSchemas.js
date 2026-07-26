@@ -299,6 +299,7 @@ const recurringSchemas = {
             'any.only': 'Type must be either "income" or "expense"'
         }),
         category: commonSchemas.optionalObjectId,
+        account: commonSchemas.optionalObjectId,
         frequency: Joi.string().valid(...FREQUENCIES).required().messages({
             'any.only': `Frequency must be one of: ${FREQUENCIES.join(', ')}`
         }),
@@ -326,6 +327,7 @@ const recurringSchemas = {
             'any.only': 'Type must be either "income" or "expense"'
         }),
         category: commonSchemas.optionalObjectId,
+        account: commonSchemas.optionalObjectId,
         frequency: Joi.string().valid(...FREQUENCIES).optional().messages({
             'any.only': `Frequency must be one of: ${FREQUENCIES.join(', ')}`
         }),

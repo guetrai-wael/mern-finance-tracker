@@ -3,6 +3,7 @@ const { hashPassword, comparePassword } = require('../utils/password');
 const asyncHandler = require('../utils/asyncHandler');
 const { success, error } = require('../utils/response');
 const logger = require('../utils/logger');
+const { purgeUserData } = require('../services/userCleanup');
 
 // Get user profile and settings
 const getProfile = async (req, res, next) => {
@@ -147,11 +148,12 @@ const exportData = async (req, res, next) => {
 const deleteAccount = asyncHandler(async (req, res) => {
     const userId = req.user.id;
 
-    // Note: In a real app, you might want to soft delete or archive data
-    // instead of hard delete, and cleanup related data (transactions, etc.)
-    await User.findByIdAndDelete(userId);
+    // Removes the user's transactions, accounts, budgets, goals, categories,
+    // notifications and recurring rules along with the user record. Deleting
+    // only the User left all of that orphaned in the database.
+    const deleted = await purgeUserData(userId);
 
-    logger.info('Account deleted', { userId });
+    logger.info('Account deleted', { userId, deleted });
     return success(res, null, 'Account deleted successfully');
 });
 

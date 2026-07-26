@@ -4,6 +4,7 @@ const logger = require('../utils/logger');
 const { hashPassword } = require('../utils/password');
 const asyncHandler = require('../utils/asyncHandler');
 const { success, successList, error } = require('../utils/response');
+const { purgeUserData } = require('../services/userCleanup');
 
 const listUsers = asyncHandler(async (req, res) => {
     // Bounded pagination — at friends/family scale this is overkill, but it makes
@@ -65,9 +66,17 @@ const updateUser = asyncHandler(async (req, res) => {
 
 const deleteUser = asyncHandler(async (req, res) => {
     logger.info('User deletion initiated', { userId: req.params.id });
-    const user = await User.findByIdAndDelete(req.params.id);
+
+    // Read first so the response can report who was removed, and so a missing
+    // user still 404s rather than silently purging nothing.
+    const user = await User.findById(req.params.id);
     if (!user) return error(res, 'User not found', 404);
-    logger.info('User deleted successfully', { userId: req.params.id, email: user.email });
+
+    // An admin deleting a user removes their data too. Deleting only the User
+    // record is what produced the orphaned transactions found in production.
+    const deleted = await purgeUserData(req.params.id);
+
+    logger.info('User deleted successfully', { userId: req.params.id, email: user.email, deleted });
     return success(res, null, 'User deleted successfully');
 });
 
