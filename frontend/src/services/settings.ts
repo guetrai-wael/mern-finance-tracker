@@ -12,8 +12,16 @@ export interface ChangePasswordData {
   newPassword: string;
 }
 
+export interface NotificationPreferences {
+  email?: boolean;
+  budgetAlerts?: boolean;
+  goalReminders?: boolean;
+  monthlyReports?: boolean;
+}
+
 export interface UserSettings {
   currency: "USD" | "EUR" | "TND";
+  notifications?: NotificationPreferences;
   // Add more settings as needed
 }
 

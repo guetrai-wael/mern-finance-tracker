@@ -28,10 +28,12 @@ import {
   updateProfile,
   changePassword,
   getUserSettings,
+  updateUserSettings,
   updateUserSettingsAndContext,
   exportUserData,
   deleteAccount,
 } from "../services/settings";
+import type { NotificationPreferences } from "../services/settings";
 
 // Form schemas
 const profileSchema = z.object({
@@ -64,6 +66,28 @@ const currencyOptions = [
   { value: "USD", label: "US Dollar ($)", symbol: "$" },
   { value: "EUR", label: "Euro (€)", symbol: "€" },
   { value: "TND", label: "Tunisian Dinar (د.ت)", symbol: "د.ت" },
+];
+
+const NOTIFICATION_OPTIONS: {
+  key: keyof NotificationPreferences;
+  label: string;
+  description: string;
+}[] = [
+  {
+    key: "budgetAlerts",
+    label: "Budget alerts",
+    description: "When you approach or pass a spending limit",
+  },
+  {
+    key: "goalReminders",
+    label: "Goal reminders",
+    description: "When a savings goal's target date is approaching",
+  },
+  {
+    key: "monthlyReports",
+    label: "Monthly summary",
+    description: "A recap of income and spending when the month ends",
+  },
 ];
 
 type SettingsTab = "profile" | "security" | "preferences" | "data" | "danger";
@@ -148,6 +172,22 @@ const SettingsPage: React.FC = () => {
     },
     onError: (error: any) => {
       showError(error.response?.data?.message || "Failed to update settings");
+    },
+  });
+
+  // Kept separate from the currency form: toggles save on click rather than
+  // waiting for a submit, and must not carry the currency field along with them.
+  const updateNotificationsMutation = useMutation({
+    mutationFn: (notifications: NotificationPreferences) =>
+      updateUserSettings({ notifications }),
+    onSuccess: () => {
+      showSuccess("Notification preferences updated");
+      queryClient.invalidateQueries({ queryKey: ["user-settings"] });
+    },
+    onError: (error: any) => {
+      showError(
+        error.response?.data?.message || "Failed to update notification preferences"
+      );
     },
   });
 
@@ -451,6 +491,50 @@ const SettingsPage: React.FC = () => {
                         </Button>
                     </div>
                     </form>
+
+                    <div className="mt-8 pt-6 border-t border-slate-100 max-w-2xl">
+                        <h3 className="text-sm font-semibold text-slate-900 mb-1">
+                            Notifications
+                        </h3>
+                        <p className="text-sm text-slate-500 mb-4">
+                            Alerts appear in the bell menu. Each saves immediately.
+                        </p>
+
+                        <div className="space-y-1">
+                            {NOTIFICATION_OPTIONS.map((option) => {
+                                const enabled =
+                                    settingsData?.settings?.notifications?.[option.key] !== false;
+                                return (
+                                    <div
+                                        key={option.key}
+                                        className="flex items-center justify-between py-3 border-b border-slate-50 last:border-0"
+                                    >
+                                        <div className="pr-4">
+                                            <p className="text-sm font-medium text-slate-900">
+                                                {option.label}
+                                            </p>
+                                            <p className="text-xs text-slate-500 mt-0.5">
+                                                {option.description}
+                                            </p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                                            <input
+                                                type="checkbox"
+                                                checked={enabled}
+                                                onChange={(event) =>
+                                                    updateNotificationsMutation.mutate({
+                                                        [option.key]: event.target.checked,
+                                                    })
+                                                }
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600" />
+                                        </label>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
                 </Card>
               )}
 

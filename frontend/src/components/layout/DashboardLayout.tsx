@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { TrialBanner } from "../subscription/TrialBanner";
+import NotificationBell from "../notifications/NotificationBell";
 import {
   FiHome,
   FiCreditCard,
@@ -126,6 +127,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 </p>
                 <p className="text-xs text-slate-500 truncate">{user?.email}</p>
               </div>
+              {/* Hidden on mobile: the mobile header carries its own bell. */}
+              <div className="hidden lg:block">
+                <NotificationBell />
+              </div>
             </div>
             <button
               onClick={handleLogout}
@@ -151,8 +156,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               </button>
               <span className="font-bold text-slate-900">Chahrity</span>
             </div>
-            <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-sm">
-                {user?.name?.charAt(0) || 'U'}
+            <div className="flex items-center gap-1">
+              <NotificationBell />
+              <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-sm">
+                  {user?.name?.charAt(0) || 'U'}
+              </div>
             </div>
         </div>
 

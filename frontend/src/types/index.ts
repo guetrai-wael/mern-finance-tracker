@@ -50,6 +50,25 @@ export interface Transaction {
   updatedAt: string;
 }
 
+export type NotificationType = "budget" | "goal" | "report" | "system";
+
+export interface Notification {
+  _id: string;
+  user: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  read: boolean;
+  readAt?: string;
+  meta?: {
+    href?: string;
+    [key: string]: unknown;
+  };
+  dedupeKey: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type RecurrenceFrequency =
   | "daily"
   | "weekly"
