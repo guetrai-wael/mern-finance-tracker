@@ -5,6 +5,12 @@ node_modules/
 # is what makes installs reproducible and `npm audit` results meaningful —
 # without it, every deploy re-resolves transitive dependencies and can silently
 # pull in a version that was never reviewed.
+#
+# The repo root has no package.json, so a lockfile HERE can only come from an
+# accidental `npm install` in the wrong directory. Ignore that one specifically
+# (leading slash = root only) so it cannot dirty the working tree and abort a
+# deploy. backend/ and frontend/ lockfiles stay tracked.
+/package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
