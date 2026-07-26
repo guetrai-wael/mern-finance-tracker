@@ -49,6 +49,12 @@ build/
 # Testing
 coverage/
 
+# Database dumps. These contain every user's financial records and password
+# hashes in plain form — they must never be committed.
+backups/
+backend/backups/
+*.bson
+
 # Temporary files
 tmp/
 *.tmp
