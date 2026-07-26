@@ -112,7 +112,58 @@ const TransactionQueries = {
         $sort: { total: -1 }
       }
     ];
-  }
+  },
+
+  /**
+   * Net movement per account, as a pipeline.
+   *
+   * A transfer is stored as ONE document, so it has to contribute to two
+   * accounts: minus from `account`, plus to `transferTo`. The $project below
+   * turns each transaction into a small array of {account, delta} entries —
+   * one entry normally, two for a transfer — which $unwind then flattens so a
+   * single $group can sum them.
+   *
+   * The caller adds openingBalance; this only reports movement.
+   * Served by { user: 1, account: 1, date: -1 }.
+   */
+  getAccountBalances: (userId) => [
+    { $match: { user: userId } },
+    {
+      $project: {
+        entries: {
+          $concatArrays: [
+            [
+              {
+                account: '$account',
+                delta: {
+                  $switch: {
+                    branches: [
+                      { case: { $eq: ['$type', 'income'] }, then: '$amount' },
+                      { case: { $eq: ['$type', 'expense'] }, then: { $multiply: ['$amount', -1] } },
+                      // Money leaving the source account.
+                      { case: { $eq: ['$type', 'transfer'] }, then: { $multiply: ['$amount', -1] } }
+                    ],
+                    default: 0
+                  }
+                }
+              }
+            ],
+            {
+              $cond: [
+                { $eq: ['$type', 'transfer'] },
+                [{ account: '$transferTo', delta: '$amount' }],
+                []
+              ]
+            }
+          ]
+        }
+      }
+    },
+    { $unwind: '$entries' },
+    // Transactions predating the account backfill have no account to credit.
+    { $match: { 'entries.account': { $ne: null } } },
+    { $group: { _id: '$entries.account', net: { $sum: '$entries.delta' } } }
+  ]
 };
 
 /**

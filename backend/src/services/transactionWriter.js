@@ -12,6 +12,7 @@
 const Transaction = require('../models/transaction.model');
 const { checkBudgets } = require('./budgetCheck');
 const { dispatchBudgetEvents } = require('./notifications');
+const { resolveDefaultAccount } = require('../controllers/accounts.controller');
 
 /**
  * Create a transaction and run every side effect that must accompany it.
@@ -28,13 +29,25 @@ const { dispatchBudgetEvents } = require('./notifications');
  * @returns {Promise<{ transaction, budgetEvents }>}
  */
 async function createTransaction(input) {
-    const { user, amount, type, category, date, description, source = 'manual', recurringId } = input;
+    const {
+        user, amount, type, category, date, description,
+        source = 'manual', recurringId, account, transferTo
+    } = input;
+
+    // Callers that do not name an account get the user's default, provisioned
+    // on demand. This is the only place that decision is made — which is the
+    // reason this module exists.
+    const resolvedAccount = account || (await resolveDefaultAccount(user))._id;
 
     const transaction = await Transaction.create({
         user,
         amount,
         type,
         category,
+        account: resolvedAccount,
+        // Only meaningful on a transfer; stored as undefined otherwise so an
+        // expense can never carry a stale destination.
+        transferTo: type === 'transfer' ? transferTo : undefined,
         date: date || new Date(),
         description,
         source,

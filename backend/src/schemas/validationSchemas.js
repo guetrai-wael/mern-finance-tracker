@@ -101,23 +101,30 @@ const authSchemas = {
 };
 
 // Transaction schemas
+// `account` is accepted but never required, even after the model marks it
+// required. A stale cached SPA that still posts without one must not get a 400
+// it cannot recover from — the controller fills in the user's default instead.
 const transactionSchemas = {
     create: Joi.object({
         amount: commonSchemas.amount,
-        type: Joi.string().valid('income', 'expense').required().messages({
-            'any.only': 'Type must be either "income" or "expense"'
+        type: Joi.string().valid('income', 'expense', 'transfer').required().messages({
+            'any.only': 'Type must be one of: income, expense, transfer'
         }),
         category: commonSchemas.optionalObjectId,
+        account: commonSchemas.optionalObjectId,
+        transferTo: commonSchemas.optionalObjectId,
         date: commonSchemas.optionalDate,
         description: commonSchemas.description
     }).required(),
 
     update: Joi.object({
         amount: commonSchemas.optionalAmount,
-        type: Joi.string().valid('income', 'expense').optional().messages({
-            'any.only': 'Type must be either "income" or "expense"'
+        type: Joi.string().valid('income', 'expense', 'transfer').optional().messages({
+            'any.only': 'Type must be one of: income, expense, transfer'
         }),
         category: commonSchemas.optionalObjectId,
+        account: commonSchemas.optionalObjectId,
+        transferTo: commonSchemas.optionalObjectId,
         date: commonSchemas.optionalDate,
         description: commonSchemas.description
     }).min(1).required().messages({
@@ -131,8 +138,9 @@ const transactionSchemas = {
         end: Joi.date().iso().optional().messages({
             'date.format': 'End date must be in ISO format'
         }),
-        type: Joi.string().valid('income', 'expense').optional(),
+        type: Joi.string().valid('income', 'expense', 'transfer').optional(),
         category: commonSchemas.optionalObjectId,
+        account: commonSchemas.optionalObjectId,
         ...commonSchemas.pagination,
         sort: commonSchemas.sortOrder
     }).custom((value, helpers) => {
@@ -249,6 +257,32 @@ const goalSchemas = {
             'string.max': 'Description must not exceed 200 characters'
         })
     }).required()
+};
+
+// Account schemas
+const ACCOUNT_TYPES = ['cash', 'bank', 'card', 'savings'];
+
+const accountSchemas = {
+    create: Joi.object({
+        name: Joi.string().trim().min(1).max(60).required().messages({
+            'string.max': 'Account name must not exceed 60 characters'
+        }),
+        type: Joi.string().valid(...ACCOUNT_TYPES).optional().default('bank').messages({
+            'any.only': `Type must be one of: ${ACCOUNT_TYPES.join(', ')}`
+        }),
+        openingBalance: Joi.number().precision(2).min(-999999999.99).max(999999999.99).optional().default(0),
+        currency: Joi.string().length(3).optional()
+    }).required(),
+
+    update: Joi.object({
+        name: Joi.string().trim().min(1).max(60).optional(),
+        type: Joi.string().valid(...ACCOUNT_TYPES).optional(),
+        openingBalance: Joi.number().precision(2).min(-999999999.99).max(999999999.99).optional(),
+        currency: Joi.string().length(3).optional(),
+        isArchived: Joi.boolean().optional()
+    }).min(1).required().messages({
+        'object.min': 'At least one field must be provided for update'
+    })
 };
 
 // Recurring transaction schemas
@@ -384,6 +418,7 @@ module.exports = {
     categorySchemas,
     budgetSchemas,
     goalSchemas,
+    accountSchemas,
     recurringSchemas,
     userSchemas,
     paramSchemas,
