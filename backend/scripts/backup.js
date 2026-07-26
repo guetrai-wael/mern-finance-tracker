@@ -19,13 +19,21 @@
 const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
-// Extended JSON, not plain JSON. JSON.stringify renders an ObjectId as a bare
-// string and a Date as an ISO string, so restoring such a file would replace
-// every reference and timestamp with text — silently breaking populate() and
-// every date range query. EJSON round-trips both. bson ships with the mongodb
-// driver that mongoose already depends on.
-const { EJSON } = require('bson');
 require('dotenv').config();
+
+/* Extended JSON, not plain JSON. JSON.stringify renders an ObjectId as a bare
+ * string and a Date as an ISO string, so restoring such a file would replace
+ * every reference and timestamp with text — silently breaking populate() and
+ * every date range query.
+ *
+ * Taken from mongoose's own driver rather than require('bson'). node_modules
+ * holds more than one copy of bson (7.x hoisted, 5.x under mongoose), and each
+ * refuses to serialize BSON types produced by a different major:
+ *   BSONVersionError: Unsupported BSON version, bson types must be from bson 7.x.x
+ * Reaching through mongoose guarantees this is the exact instance that created
+ * the documents being dumped, whatever version that happens to be.
+ */
+const { EJSON } = mongoose.mongo.BSON;
 
 const LARGE_COLLECTION = 50000;
 
@@ -40,6 +48,40 @@ const parseArgs = (argv) => {
     }
     return args;
 };
+
+/**
+ * Dump every collection in `db` to `outDir` as Extended JSON.
+ * Exported so the test suite can round-trip it against a real database — the
+ * bson-version bug this guards against is invisible to any test that does not.
+ *
+ * @returns {Promise<{outDir: string, collections: Object}>}
+ */
+async function backupCollections(db, outDir, { log = console.log } = {}) {
+    fs.mkdirSync(outDir, { recursive: true });
+
+    const collections = await db.listCollections().toArray();
+    const manifest = { takenAt: new Date().toISOString(), collections: {} };
+
+    log(`Backing up ${collections.length} collection(s) to:\n  ${outDir}\n`);
+
+    for (const { name } of collections) {
+        const collection = db.collection(name);
+        const count = await collection.countDocuments();
+
+        if (count > LARGE_COLLECTION) {
+            console.warn(`  ! ${name}: ${count} documents — large. Consider mongodump for this one.`);
+        }
+
+        const docs = await collection.find({}).toArray();
+        fs.writeFileSync(path.join(outDir, `${name}.json`), EJSON.stringify(docs, null, 2));
+
+        manifest.collections[name] = count;
+        log(`  ${name}: ${count} document(s)`);
+    }
+
+    fs.writeFileSync(path.join(outDir, '_manifest.json'), JSON.stringify(manifest, null, 2));
+    return { outDir, collections: manifest.collections };
+}
 
 async function main() {
     const args = parseArgs(process.argv);
@@ -57,30 +99,7 @@ async function main() {
     let failed = false;
 
     try {
-        fs.mkdirSync(outDir, { recursive: true });
-
-        const collections = await mongoose.connection.db.listCollections().toArray();
-        const manifest = { takenAt: new Date().toISOString(), collections: {} };
-
-        console.log(`Backing up ${collections.length} collection(s) to:\n  ${outDir}\n`);
-
-        for (const { name } of collections) {
-            const collection = mongoose.connection.db.collection(name);
-            const count = await collection.countDocuments();
-
-            if (count > LARGE_COLLECTION) {
-                console.warn(`  ! ${name}: ${count} documents — large. Consider mongodump for this one.`);
-            }
-
-            const docs = await collection.find({}).toArray();
-            fs.writeFileSync(path.join(outDir, `${name}.json`), EJSON.stringify(docs, null, 2));
-
-            manifest.collections[name] = count;
-            console.log(`  ${name}: ${count} document(s)`);
-        }
-
-        fs.writeFileSync(path.join(outDir, '_manifest.json'), JSON.stringify(manifest, null, 2));
-
+        await backupCollections(mongoose.connection.db, outDir);
         console.log(`\nBackup complete: ${outDir}`);
         console.log('Restore with: node scripts/restore.js --from=<dir> --collection=<name> --confirm');
     } catch (err) {
@@ -94,4 +113,7 @@ async function main() {
     process.exit(failed ? 1 : 0);
 }
 
-main();
+module.exports = { backupCollections };
+
+// Only run the CLI when invoked directly, so requiring this from a test is safe.
+if (require.main === module) main();

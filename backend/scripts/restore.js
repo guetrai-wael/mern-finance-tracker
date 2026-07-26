@@ -16,8 +16,11 @@
 const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
-const { EJSON } = require('bson');
 require('dotenv').config();
+
+// Must be the same EJSON instance backup.js wrote with — see the note there.
+// require('bson') can resolve to a different major than mongoose's driver uses.
+const { EJSON } = mongoose.mongo.BSON;
 
 const parseArgs = (argv) => {
     const args = { from: null, collection: null, confirm: false };
@@ -33,6 +36,43 @@ const parseArgs = (argv) => {
     return args;
 };
 
+/**
+ * Replace one collection's contents from a backup directory.
+ * Exported for testing; see backup.js for why EJSON must come from mongoose.
+ */
+async function restoreCollection(db, { dir, collection: name, confirm = false, log = console.log }) {
+    const file = path.join(dir, `${name}.json`);
+    if (!fs.existsSync(file)) {
+        throw new Error(`No backup file at ${file}`);
+    }
+
+    const docs = EJSON.parse(fs.readFileSync(file, 'utf8'));
+    const collection = db.collection(name);
+    const current = await collection.countDocuments();
+
+    log(`Collection : ${name}`);
+    log(`In database: ${current} document(s)  <- will be DELETED`);
+    log(`In backup  : ${docs.length} document(s)  <- will be inserted`);
+
+    if (!confirm) {
+        log('\nDry run. Nothing was changed. Re-run with --confirm to apply.');
+        return { restored: 0, dryRun: true };
+    }
+
+    // deleteMany rather than drop() so indexes defined by the models survive.
+    await collection.deleteMany({});
+    if (docs.length > 0) {
+        await collection.insertMany(docs, { ordered: false });
+    }
+
+    const restored = await collection.countDocuments();
+    if (restored !== docs.length) {
+        throw new Error(`Restored ${restored} documents but the backup held ${docs.length}.`);
+    }
+
+    return { restored, dryRun: false };
+}
+
 async function main() {
     const args = parseArgs(process.argv);
     const uri = process.env.MONGO_URI;
@@ -46,42 +86,19 @@ async function main() {
         process.exit(1);
     }
 
-    const file = path.join(args.from, `${args.collection}.json`);
-    if (!fs.existsSync(file)) {
-        console.error(`No backup file at ${file}`);
-        process.exit(1);
-    }
-
-    const docs = EJSON.parse(fs.readFileSync(file, 'utf8'));
-
     await mongoose.connect(uri);
     let failed = false;
 
     try {
-        const collection = mongoose.connection.db.collection(args.collection);
-        const current = await collection.countDocuments();
+        const result = await restoreCollection(mongoose.connection.db, {
+            dir: args.from,
+            collection: args.collection,
+            confirm: args.confirm
+        });
 
-        console.log(`Collection : ${args.collection}`);
-        console.log(`In database: ${current} document(s)  <- will be DELETED`);
-        console.log(`In backup  : ${docs.length} document(s)  <- will be inserted`);
-
-        if (!args.confirm) {
-            console.log('\nDry run. Nothing was changed. Re-run with --confirm to apply.');
-            return;
+        if (!result.dryRun) {
+            console.log(`\nRestored ${result.restored} document(s) into ${args.collection}.`);
         }
-
-        // deleteMany rather than drop() so indexes defined by the models survive.
-        await collection.deleteMany({});
-        if (docs.length > 0) {
-            await collection.insertMany(docs, { ordered: false });
-        }
-
-        const restored = await collection.countDocuments();
-        if (restored !== docs.length) {
-            throw new Error(`Restored ${restored} documents but the backup held ${docs.length}.`);
-        }
-
-        console.log(`\nRestored ${restored} document(s) into ${args.collection}.`);
     } catch (err) {
         failed = true;
         console.error('\nRestore failed:', err.message);
@@ -93,4 +110,6 @@ async function main() {
     process.exit(failed ? 1 : 0);
 }
 
-main();
+module.exports = { restoreCollection };
+
+if (require.main === module) main();
