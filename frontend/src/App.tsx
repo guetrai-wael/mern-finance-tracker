@@ -25,6 +25,7 @@ const CategoriesPage = lazy(() => import("./pages/CategoriesPage"));
 const BudgetsPage = lazy(() => import("./pages/BudgetsPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const RecurringPage = lazy(() => import("./pages/RecurringPage"));
+const AccountsPage = lazy(() => import("./pages/AccountsPage"));
 const ReportsPage = lazy(() => import("./pages/ReportsPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
@@ -172,6 +173,16 @@ const AppRoutes: React.FC = () => {
             <ProtectedRoute>
               <DashboardLayout>
                 <GoalsPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/accounts"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <AccountsPage />
               </DashboardLayout>
             </ProtectedRoute>
           }

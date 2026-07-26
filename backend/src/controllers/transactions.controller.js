@@ -7,13 +7,14 @@ const transactionWriter = require('../services/transactionWriter');
 const { checkBudgets } = require('../services/budgetCheck');
 
 const listTransactions = asyncHandler(async (req, res) => {
-    const { start, end, type, limit = 50, page = 1 } = req.query;
+    const { start, end, type, account, limit = 50, page = 1 } = req.query;
     const skip = (page - 1) * limit;
-    
+
     const queryConfig = TransactionQueries.getUserTransactions(req.user._id, {
         start,
         end,
         type,
+        account,
         limit: parseInt(limit),
         skip
     });
@@ -33,6 +34,8 @@ const getTransaction = asyncHandler(async (req, res) => {
         'getTransaction',
         Transaction.findOne({ _id: req.params.id, user: req.user._id })
             .populate('category')
+            .populate('account', 'name type currency')
+            .populate('transferTo', 'name type currency')
             .lean(),
         req.requestId
     );

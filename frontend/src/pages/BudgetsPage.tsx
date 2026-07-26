@@ -7,7 +7,7 @@ import { z } from "zod";
 import { FiEdit, FiPlus, FiTrash2, FiTarget } from "react-icons/fi";
 import { getBudget, upsertBudget } from "../services/budgets";
 import { getCategories } from "../services/categories";
-import { getTransactions } from "../services/transactions";
+import { getTransactions, MAX_TRANSACTION_PAGE } from "../services/transactions";
 import { useCurrency } from "../hooks/useCurrency";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import { Card } from "../components/common/Card";
@@ -75,6 +75,8 @@ const BudgetsPage: React.FC = () => {
         start: startDate,
         end: endDate,
         type: "expense",
+        // Spent-vs-budget is summed from these rows.
+        limit: MAX_TRANSACTION_PAGE,
       });
     },
   });

@@ -1,7 +1,7 @@
 // Dashboard data hooks and utilities
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getTransactions } from "../services/transactions";
+import { getTransactions, MAX_TRANSACTION_PAGE } from "../services/transactions";
 import { getBudget } from "../services/budgets";
 import type { Transaction, Budget } from "../types";
 
@@ -86,7 +86,8 @@ export const useDashboardData = (): UseDashboardResult => {
         new Date(currentMonth + "-01").getMonth() + 1,
         0
       ).toISOString();
-      return getTransactions({ start: startDate, end: endDate });
+      // Totals are derived from these rows, so ask for the maximum page.
+      return getTransactions({ start: startDate, end: endDate, limit: MAX_TRANSACTION_PAGE });
     },
   });
 
@@ -119,7 +120,7 @@ export const useDashboardData = (): UseDashboardResult => {
           ).toISOString();
 
           promises.push(
-            getTransactions({ start: startDate, end: endDate }).then(
+            getTransactions({ start: startDate, end: endDate, limit: MAX_TRANSACTION_PAGE }).then(
               (data) => ({
                 month: monthStr,
                 transactions: data.items,

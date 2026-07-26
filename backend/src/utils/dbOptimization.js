@@ -13,23 +13,29 @@ const TransactionQueries = {
    * Get user transactions with date filtering and category population
    */
   getUserTransactions: (userId, filters = {}) => {
-    const { start, end, type, category, limit = 50, skip = 0 } = filters;
-    
+    const { start, end, type, category, account, limit = 50, skip = 0 } = filters;
+
     const query = { user: userId };
-    
+
     // Date range optimization
     if (start || end) {
       query.date = {};
       if (start) query.date.$gte = new Date(start);
       if (end) query.date.$lte = new Date(end);
     }
-    
+
     // Type filter
     if (type) query.type = type;
-    
+
     // Category filter
     if (category) query.category = category;
-    
+
+    // Account filter. Matches transfers in either direction so a per-account
+    // statement shows money arriving as well as leaving.
+    if (account) {
+      query.$or = [{ account }, { transferTo: account }];
+    }
+
     return {
       filter: query,
       options: {
@@ -38,7 +44,13 @@ const TransactionQueries = {
         skip,
         lean: true // Return plain objects for better performance
       },
-      populate: 'category'
+      // Only the fields the UI renders — populating whole documents here would
+      // pull opening balances and timestamps onto every row.
+      populate: [
+        { path: 'category' },
+        { path: 'account', select: 'name type currency' },
+        { path: 'transferTo', select: 'name type currency' }
+      ]
     };
   },
 

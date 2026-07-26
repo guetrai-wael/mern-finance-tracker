@@ -39,7 +39,11 @@ export interface Transaction {
   user: string;
   amount: number;
   category?: Category;
-  type: "income" | "expense";
+  type: "income" | "expense" | "transfer";
+  /** Which account the money moved out of (or into, for income). */
+  account?: Account;
+  /** Destination account. Only set when type is "transfer". */
+  transferTo?: Account;
   date: string;
   description?: string;
   /** Where this entry came from. Automated entries are tagged in the UI. */
@@ -48,6 +52,31 @@ export interface Transaction {
   recurringId?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export type AccountType = "cash" | "bank" | "card" | "savings";
+
+export interface Account {
+  _id: string;
+  user: string;
+  name: string;
+  type: AccountType;
+  openingBalance: number;
+  currency: string;
+  isArchived: boolean;
+  isDefault: boolean;
+  /** Derived server-side: openingBalance + income - expenses +/- transfers. */
+  balance: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AccountInput {
+  name: string;
+  type?: AccountType;
+  openingBalance?: number;
+  currency?: string;
+  isArchived?: boolean;
 }
 
 export type NotificationType = "budget" | "goal" | "report" | "system";
@@ -147,7 +176,11 @@ export interface SignupCredentials {
 export interface TransactionInput {
   amount: number;
   category?: string;
-  type: "income" | "expense";
+  type: "income" | "expense" | "transfer";
+  /** Omit to use the user's default account. */
+  account?: string;
+  /** Required by the server when type is "transfer". */
+  transferTo?: string;
   date?: string;
   description?: string;
 }

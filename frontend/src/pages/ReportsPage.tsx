@@ -21,12 +21,13 @@ import { FiDownload, FiCalendar } from "react-icons/fi";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-import { getTransactions } from "../services/transactions";
+import { getTransactions, MAX_TRANSACTION_PAGE } from "../services/transactions";
 import { useCurrency } from "../hooks/useCurrency";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import { Card } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 import { useToast } from "../hooks/useToast";
+import { isIncome, isExpense, sumIncome, sumExpenses } from "../utils/transactionType";
 import type { Transaction } from "../types";
 
 const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#6366f1"];
@@ -60,6 +61,8 @@ const ReportsPage: React.FC = () => {
       getTransactions({
         start: new Date(start).toISOString(),
         end: new Date(new Date(end).setHours(23, 59, 59, 999)).toISOString(),
+        // Every figure on this page is summed from these rows.
+        limit: MAX_TRANSACTION_PAGE,
       }),
   });
 
@@ -80,8 +83,10 @@ const ReportsPage: React.FC = () => {
     transactions.forEach((t) => {
       const key = monthKey(new Date(t.date));
       if (!buckets[key]) buckets[key] = { income: 0, expenses: 0 };
-      if (t.type === "income") buckets[key].income += t.amount;
-      else buckets[key].expenses += t.amount;
+      // Explicit on both branches. An `else` here would sweep transfers into
+      // expenses — moving money between your own accounts is not spending.
+      if (isIncome(t)) buckets[key].income += t.amount;
+      else if (isExpense(t)) buckets[key].expenses += t.amount;
     });
     return Object.entries(buckets)
       .sort(([a], [b]) => a.localeCompare(b))
@@ -133,9 +138,12 @@ const ReportsPage: React.FC = () => {
 
   // top-of-page summary
   const totals = React.useMemo(() => {
-    const income = transactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
-    const expenses = transactions.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
-    return { income, expenses, net: income - expenses, count: transactions.length };
+    const income = sumIncome(transactions);
+    const expenses = sumExpenses(transactions);
+    // Count only what the income/expense figures are drawn from, so the KPI
+    // and the PDF summary agree with the numbers beside them.
+    const count = transactions.filter((t) => isIncome(t) || isExpense(t)).length;
+    return { income, expenses, net: income - expenses, count };
   }, [transactions]);
 
   // --- PDF export ---

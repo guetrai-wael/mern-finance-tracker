@@ -20,7 +20,15 @@ import { Card } from "../components/common/Card";
 import { InsightStrip } from "../components/dashboard/InsightStrip";
 import { computeInsights } from "../utils/insights";
 import type { Transaction } from "../types";
-import { FiArrowUp, FiArrowDown, FiActivity, FiPieChart } from "react-icons/fi";
+import { FiArrowUp, FiArrowDown, FiActivity, FiPieChart, FiRepeat } from "react-icons/fi";
+import {
+  isIncome,
+  isExpense,
+  isTransfer,
+  amountColor,
+  amountPrefix,
+  typeChipColor,
+} from "../utils/transactionType";
 
 // Renders a "+12% vs last month" subline under each KPI value. Returns null
 // if the previous month had no signal worth comparing (e.g., income was 0).
@@ -265,20 +273,19 @@ const DashboardPage: React.FC = () => {
                         <div className="flex items-center gap-4">
                             <div className={`
                                 w-10 h-10 rounded-full flex items-center justify-center
-                                ${transaction.type === 'income' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}
+                                ${typeChipColor(transaction)}
                             `}>
-                                {transaction.type === 'income' ? <FiArrowUp /> : <FiArrowDown />}
+                                {isIncome(transaction) && <FiArrowUp />}
+                                {isExpense(transaction) && <FiArrowDown />}
+                                {isTransfer(transaction) && <FiRepeat />}
                             </div>
                             <div>
                                 <p className="font-medium text-slate-900">{transaction.description}</p>
                                 <p className="text-sm text-slate-500">{transaction.category?.name || 'Uncategorized'} • {new Date(transaction.date).toLocaleDateString()}</p>
                             </div>
                         </div>
-                        <span className={`
-                            font-semibold
-                            ${transaction.type === 'income' ? 'text-emerald-600' : 'text-slate-900'}
-                        `}>
-                            {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                        <span className={`font-semibold ${amountColor(transaction)}`}>
+                            {amountPrefix(transaction)}{formatCurrency(transaction.amount)}
                         </span>
                     </div>
                 ))

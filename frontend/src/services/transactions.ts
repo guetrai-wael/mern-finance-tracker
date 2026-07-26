@@ -5,8 +5,18 @@ import type { Transaction, TransactionInput } from "../types";
 export interface TransactionFilters {
   start?: string;
   end?: string;
-  type?: "income" | "expense";
+  type?: "income" | "expense" | "transfer";
+  account?: string;
+  limit?: number;
 }
+
+/**
+ * The API defaults to 50 results and caps at 100. Anything that computes a
+ * total from the returned rows must ask for the maximum, or it silently
+ * reports a figure derived from a partial month — the bug that made dashboard
+ * totals wrong for anyone with more than 50 transactions in a month.
+ */
+export const MAX_TRANSACTION_PAGE = 100;
 
 export const getTransactions = async (
   filters?: TransactionFilters
@@ -15,6 +25,8 @@ export const getTransactions = async (
   if (filters?.start) params.append("start", filters.start);
   if (filters?.end) params.append("end", filters.end);
   if (filters?.type) params.append("type", filters.type);
+  if (filters?.account) params.append("account", filters.account);
+  if (filters?.limit) params.append("limit", String(filters.limit));
 
   const response = await api.get(`/transactions?${params.toString()}`);
   return { items: response.data.data || [] };
