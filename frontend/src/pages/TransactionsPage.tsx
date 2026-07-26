@@ -31,17 +31,33 @@ import { Input } from "../components/common/Input";
 import { Modal } from "../components/common/Modal";
 import type { Transaction, TransactionInput } from "../types";
 
-// Transfers are rendered correctly (see utils/transactionType) but cannot yet
-// be created here — that arrives with the transfer UI. Shipping the renderers
-// first means there is never a window where a transfer displays as an expense.
-const transactionSchema = z.object({
-  amount: z.number().min(0.01, "Amount must be greater than 0"),
-  type: z.enum(["income", "expense"], { required_error: "Type is required" }),
-  category: z.string().optional(),
-  account: z.string().optional(),
-  date: z.string().optional(),
-  description: z.string().optional(),
-});
+const transactionSchema = z
+  .object({
+    amount: z.number().min(0.01, "Amount must be greater than 0"),
+    type: z.enum(["income", "expense", "transfer"], {
+      required_error: "Type is required",
+    }),
+    category: z.string().optional(),
+    account: z.string().optional(),
+    transferTo: z.string().optional(),
+    date: z.string().optional(),
+    description: z.string().optional(),
+  })
+  // Mirrors the server's rules so the user is told before the round trip.
+  .refine((data) => data.type !== "transfer" || Boolean(data.transferTo), {
+    message: "Choose which account the money goes to",
+    path: ["transferTo"],
+  })
+  .refine(
+    (data) =>
+      data.type !== "transfer" ||
+      !data.account ||
+      data.account !== data.transferTo,
+    {
+      message: "Pick a different account to transfer into",
+      path: ["transferTo"],
+    }
+  );
 
 type TransactionFormData = z.infer<typeof transactionSchema>;
 
@@ -53,7 +69,7 @@ const TransactionsPage: React.FC = () => {
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
   const [filters, setFilters] = useState({
-    type: "" as "" | "income" | "expense",
+    type: "" as "" | "income" | "expense" | "transfer",
     startDate: "",
     endDate: "",
   });
@@ -138,6 +154,7 @@ const TransactionsPage: React.FC = () => {
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
@@ -147,11 +164,20 @@ const TransactionsPage: React.FC = () => {
     },
   });
 
+  // Drives which fields the form shows: a transfer needs a destination and has
+  // no spending category.
+  const selectedType = watch("type");
+
   const onSubmit = (data: TransactionFormData) => {
+    const isTransferForm = data.type === "transfer";
+
     const transactionData: TransactionInput = {
       amount: data.amount,
       type: data.type,
-      category: data.category || undefined,
+      // The server rejects a category on a transfer, and a destination on
+      // anything else, so neither is sent where it does not belong.
+      category: isTransferForm ? undefined : data.category || undefined,
+      transferTo: isTransferForm ? data.transferTo || undefined : undefined,
       // Omitted means "use my default account" — the server resolves it.
       account: data.account || undefined,
       date: data.date ? new Date(data.date).toISOString() : undefined,
@@ -171,15 +197,10 @@ const TransactionsPage: React.FC = () => {
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction);
     setValue("amount", transaction.amount);
-    // Compared inline rather than via isTransfer() because this needs to NARROW
-    // the union: Transaction["type"] includes "transfer", which this form does
-    // not offer yet, and a boolean-returning helper cannot tell tsc that.
-    // Unreachable today since nothing creates transfers.
-    if (transaction.type === "income" || transaction.type === "expense") {
-      setValue("type", transaction.type);
-    }
+    setValue("type", transaction.type);
     setValue("category", transaction.category?._id || "");
     setValue("account", transaction.account?._id || "");
+    setValue("transferTo", transaction.transferTo?._id || "");
     setValue("date", transaction.date.split("T")[0]);
     setValue("description", transaction.description || "");
     setIsModalOpen(true);
@@ -282,7 +303,7 @@ const TransactionsPage: React.FC = () => {
                     onChange={(e) =>
                     setFilters({
                         ...filters,
-                        type: e.target.value as "" | "income" | "expense",
+                        type: e.target.value as "" | "income" | "expense" | "transfer",
                     })
                     }
                     className="block w-full pl-10 pr-4 py-2 text-sm border-slate-200 rounded-xl focus:ring-primary-500 focus:border-primary-500"
@@ -290,6 +311,7 @@ const TransactionsPage: React.FC = () => {
                     <option value="">All Types</option>
                     <option value="income">Income</option>
                     <option value="expense">Expense</option>
+                    <option value="transfer">Transfer</option>
                 </select>
             </div>
           
@@ -529,16 +551,16 @@ const TransactionsPage: React.FC = () => {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Type</label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-2">
                 <div className="relative">
-                    <input 
-                        type="radio" 
-                        id="type-income" 
-                        value="income" 
-                        {...register("type")} 
+                    <input
+                        type="radio"
+                        id="type-income"
+                        value="income"
+                        {...register("type")}
                         className="peer sr-only"
                     />
-                    <label 
+                    <label
                         htmlFor="type-income"
                         className="flex items-center justify-center p-3 rounded-xl border border-slate-200 cursor-pointer transition-all peer-checked:border-emerald-500 peer-checked:text-emerald-600 peer-checked:bg-emerald-50 hover:bg-slate-50"
                     >
@@ -546,41 +568,66 @@ const TransactionsPage: React.FC = () => {
                     </label>
                 </div>
                 <div className="relative">
-                    <input 
-                        type="radio" 
-                        id="type-expense" 
-                        value="expense" 
-                        {...register("type")} 
+                    <input
+                        type="radio"
+                        id="type-expense"
+                        value="expense"
+                        {...register("type")}
                         className="peer sr-only"
                     />
-                    <label 
+                    <label
                         htmlFor="type-expense"
                         className="flex items-center justify-center p-3 rounded-xl border border-slate-200 cursor-pointer transition-all peer-checked:border-red-500 peer-checked:text-red-600 peer-checked:bg-red-50 hover:bg-slate-50"
                     >
                         Expense
                     </label>
                 </div>
+                <div className="relative">
+                    <input
+                        type="radio"
+                        id="type-transfer"
+                        value="transfer"
+                        {...register("type")}
+                        className="peer sr-only"
+                    />
+                    <label
+                        htmlFor="type-transfer"
+                        className="flex items-center justify-center p-3 rounded-xl border border-slate-200 cursor-pointer transition-all peer-checked:border-blue-500 peer-checked:text-blue-600 peer-checked:bg-blue-50 hover:bg-slate-50"
+                    >
+                        Transfer
+                    </label>
+                </div>
             </div>
              {errors.type && <p className="text-red-500 text-sm mt-1">{errors.type.message}</p>}
+             {selectedType === "transfer" && (
+               <p className="mt-2 text-xs text-slate-500">
+                 Moving money between your own accounts. This won't count as
+                 income or spending, and won't touch your budget.
+               </p>
+             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Category</label>
-            <select 
-                {...register("category")} 
-                className="block w-full rounded-xl border-slate-200 bg-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-3"
-            >
-              <option value="">Select a category</option>
-              {categories.map((category) => (
-                <option key={category._id} value={category._id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {selectedType !== "transfer" && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Category</label>
+              <select
+                  {...register("category")}
+                  className="block w-full rounded-xl border-slate-200 bg-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-3"
+              >
+                <option value="">Select a category</option>
+                {categories.map((category) => (
+                  <option key={category._id} value={category._id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Account</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              {selectedType === "transfer" ? "From account" : "Account"}
+            </label>
             <select
                 {...register("account")}
                 className="block w-full rounded-xl border-slate-200 bg-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-3"
@@ -593,6 +640,26 @@ const TransactionsPage: React.FC = () => {
               ))}
             </select>
           </div>
+
+          {selectedType === "transfer" && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">To account</label>
+              <select
+                  {...register("transferTo")}
+                  className="block w-full rounded-xl border-slate-200 bg-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-3"
+              >
+                <option value="">Select a destination</option>
+                {accounts.map((account) => (
+                  <option key={account._id} value={account._id}>
+                    {account.name}
+                  </option>
+                ))}
+              </select>
+              {errors.transferTo && (
+                <p className="text-red-500 text-sm mt-1">{errors.transferTo.message}</p>
+              )}
+            </div>
+          )}
 
           <Input
             label="Date"
