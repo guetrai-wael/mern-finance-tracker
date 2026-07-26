@@ -4,7 +4,6 @@ const asyncHandler = require('../utils/asyncHandler');
 const { success, successList, created, error } = require('../utils/response');
 const { TransactionQueries, QueryMonitor } = require('../utils/dbOptimization');
 const transactionWriter = require('../services/transactionWriter');
-const { checkBudgets } = require('../services/budgetCheck');
 
 const listTransactions = asyncHandler(async (req, res) => {
     const { start, end, type, account, limit = 50, page = 1 } = req.query;
@@ -53,10 +52,9 @@ const createTransaction = asyncHandler(async (req, res) => {
 });
 
 const updateTransaction = asyncHandler(async (req, res) => {
-    const trx = await Transaction.findOneAndUpdate({ _id: req.params.id, user: req.user._id }, req.body, { new: true });
-    if (!trx) return error(res, 'Transaction not found', 404);
-    await checkBudgets(req.user._id, trx);
-    return success(res, trx, 'Transaction updated successfully');
+    const result = await transactionWriter.updateTransaction(req.user._id, req.params.id, req.body);
+    if (!result) return error(res, 'Transaction not found', 404);
+    return success(res, result.transaction, 'Transaction updated successfully');
 });
 
 const deleteTransaction = asyncHandler(async (req, res) => {

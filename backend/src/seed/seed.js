@@ -7,6 +7,7 @@ const Transaction = require('../models/transaction.model');
 const Budget = require('../models/budget.model');
 const { hashPassword } = require('../utils/password');
 const logger = require('../utils/logger');
+const transactionWriter = require('../services/transactionWriter');
 
 async function seedDatabase() {
     try {
@@ -60,7 +61,9 @@ async function seedDatabase() {
         // Sample income
         const incomeExists = await Transaction.findOne({ user: testUser._id, type: 'income' });
         if (!incomeExists) {
-            await Transaction.create({
+            // Through transactionWriter so the seeded rows get an account, the
+            // same way every other write path does.
+            await transactionWriter.createTransaction({
                 user: testUser._id,
                 amount: 5000,
                 type: 'income',
@@ -81,14 +84,16 @@ async function seedDatabase() {
             ];
 
             for (const expense of sampleExpenses) {
-                await Transaction.create({
+                await transactionWriter.createTransaction({
                     user: testUser._id,
                     type: 'expense',
                     ...expense,
                     date: new Date()
                 });
             }
-            logger.info('Database seeding: sample expense transactions created', { count: expenseTransactions.length, operation: 'seed' });
+            // Was `expenseTransactions.length` — an identifier that does not
+            // exist, so this line threw whenever the branch actually ran.
+            logger.info('Database seeding: sample expense transactions created', { count: sampleExpenses.length, operation: 'seed' });
         }
 
         // Create sample budget

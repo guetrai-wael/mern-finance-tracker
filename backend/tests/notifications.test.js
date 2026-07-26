@@ -225,8 +225,8 @@ describe('monthlyReport job', () => {
     };
 
     it('summarises the month that just ended', async () => {
-        await Transaction.create({ user: user._id, amount: 3000, type: 'income', date: lastMonthDate() });
-        await Transaction.create({ user: user._id, amount: 1200, type: 'expense', date: lastMonthDate() });
+        await transactionWriter.createTransaction({ user: user._id, amount: 3000, type: 'income', date: lastMonthDate() });
+        await transactionWriter.createTransaction({ user: user._id, amount: 1200, type: 'expense', date: lastMonthDate() });
 
         const result = await monthlyReport();
 
@@ -239,7 +239,7 @@ describe('monthlyReport job', () => {
     });
 
     it('is idempotent across runs', async () => {
-        await Transaction.create({ user: user._id, amount: 100, type: 'income', date: lastMonthDate() });
+        await transactionWriter.createTransaction({ user: user._id, amount: 100, type: 'income', date: lastMonthDate() });
 
         await monthlyReport();
         await monthlyReport();
@@ -254,7 +254,7 @@ describe('monthlyReport job', () => {
 
     it('respects the monthlyReports preference', async () => {
         const optedOut = await makeUser('report-opt-out@test.com', { monthlyReports: false });
-        await Transaction.create({ user: optedOut._id, amount: 100, type: 'income', date: lastMonthDate() });
+        await transactionWriter.createTransaction({ user: optedOut._id, amount: 100, type: 'income', date: lastMonthDate() });
 
         await monthlyReport();
         expect(await Notification.countDocuments({ user: optedOut._id })).toEqual(0);

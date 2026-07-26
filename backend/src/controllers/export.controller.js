@@ -69,12 +69,20 @@ async function exportTransactions(req, res, next) {
             if (req.query.start) query.date.$gte = new Date(req.query.start);
             if (req.query.end) query.date.$lte = new Date(req.query.end);
         }
-        if (req.query.type === 'income' || req.query.type === 'expense') {
+        // Whitelist, so an unknown value cannot become a query injection point.
+        // 'transfer' belongs here: a user filtering to transfers and hitting
+        // Export would otherwise silently get their whole history instead.
+        if (['income', 'expense', 'transfer'].includes(req.query.type)) {
             query.type = req.query.type;
+        }
+        if (req.query.account) {
+            query.$or = [{ account: req.query.account }, { transferTo: req.query.account }];
         }
 
         const transactions = await Transaction.find(query)
             .populate('category', 'name')
+            .populate('account', 'name')
+            .populate('transferTo', 'name')
             .sort({ date: -1 });
 
         const filename = `transactions_export_${Date.now()}_${randomUUID()}`;
@@ -89,12 +97,17 @@ async function exportTransactions(req, res, next) {
             }
 
             // Format data for CSV
+            // NOTE: adding Account/Transfer To changes the CSV shape. Anything
+            // parsing this by column position rather than header will need
+            // updating.
             const csvData = transactions.map(transaction => ({
                 id: transaction._id,
                 type: transaction.type,
                 amount: transaction.amount,
                 description: transaction.description,
                 category: transaction.category?.name || 'Uncategorized',
+                account: transaction.account?.name || '',
+                transferTo: transaction.transferTo?.name || '',
                 date: transaction.date.toISOString().split('T')[0],
                 createdAt: transaction.createdAt.toISOString().split('T')[0]
             }));
@@ -107,6 +120,8 @@ async function exportTransactions(req, res, next) {
                     { id: 'amount', title: 'Amount' },
                     { id: 'description', title: 'Description' },
                     { id: 'category', title: 'Category' },
+                    { id: 'account', title: 'Account' },
+                    { id: 'transferTo', title: 'Transfer To' },
                     { id: 'date', title: 'Date' },
                     { id: 'createdAt', title: 'Created At' }
                 ]

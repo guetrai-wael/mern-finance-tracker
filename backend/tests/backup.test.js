@@ -15,6 +15,7 @@ const Category = require('../src/models/category.model');
 const Transaction = require('../src/models/transaction.model');
 const { backupCollections } = require('../scripts/backup');
 const { restoreCollection } = require('../scripts/restore');
+const { resolveDefaultAccount } = require('../src/controllers/accounts.controller');
 
 const silent = () => {};
 const daysAhead = (n) => new Date(Date.now() + n * 24 * 60 * 60 * 1000);
@@ -40,11 +41,13 @@ describe('backup and restore', () => {
             expiresAt: daysAhead(1)
         });
         category = await Category.create({ user: user._id, name: 'Food' });
+        const account = await resolveDefaultAccount(user._id);
         await Transaction.create({
             user: user._id,
             amount: 42.5,
             type: 'expense',
             category: category._id,
+            account: account._id,
             date: new Date('2026-03-15T10:30:00.000Z'),
             description: 'Lunch'
         });
@@ -137,7 +140,8 @@ describe('backup and restore', () => {
         await backupCollections(db, tmpDir, { log: silent });
 
         // Add a transaction that was not in the backup.
-        await Transaction.create({ user: user._id, amount: 999, type: 'income' });
+        const account = await resolveDefaultAccount(user._id);
+        await Transaction.create({ user: user._id, amount: 999, type: 'income', account: account._id });
         expect(await Transaction.countDocuments()).toEqual(2);
 
         await restoreCollection(db, {

@@ -116,7 +116,7 @@ describe('checkBudgets', () => {
         await Budget.create({ user: user._id, month: CURRENT_MONTH, totalBudget: 1000 });
 
         // A large expense in a different month must not trip this month's budget.
-        await Transaction.create({
+        await transactionWriter.createTransaction({
             user: user._id,
             amount: 5000,
             type: 'expense',
